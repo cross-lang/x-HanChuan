@@ -10,7 +10,7 @@ WebSocket 连接管理器
 from typing import Dict, Set, Optional
 from fastapi import WebSocket
 
-from ..core.logger import logger
+from src.core.logger import logger
 
 
 class ConnectionManager:

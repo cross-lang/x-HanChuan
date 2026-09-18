@@ -15,7 +15,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Communications :: Chat",
-    "Topic :: Internet :: WWW/HTTP :: WebSocket",
 ]
 
 dependencies = [
@@ -23,8 +22,6 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
-    "rich>=13.0",
-    "click>=8.0",
     "websockets>=16.0",
     "loguru>=0.7.0",
 ]
@@ -48,7 +45,7 @@ build-backend = "hatchling.build"
 packages = ["src"]
 
 [project.scripts]
-x-HanChuan = "src.__main__:main"
+x-HanChuan = "src.main:main"
 
 
 [tool.ruff]

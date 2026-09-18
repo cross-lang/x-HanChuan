@@ -1,8 +1,8 @@
 """系统 API 路由。"""
 from fastapi import APIRouter
 
-from ...constants.constants import APP_NAME, APP_VERSION
-from ...services import message_service
+from src.constants.constants import APP_NAME, APP_VERSION, APP_DESCRIPTION
+from src.services import message_service
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ async def root() -> dict[str, str]:
     return {
         "name": APP_NAME,
         "version": APP_VERSION,
-        "description": "基于 WebSocket 协议的实时通信服务",
+        "description": APP_DESCRIPTION,
         "ws_endpoint": "/api/v1/ws",
         "docs": "/docs",
     }

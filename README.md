@@ -6,48 +6,60 @@
 
 ## 核心特征
 
+- **分层架构** — API 路由层、业务服务层、连接管理层职责清晰分离
+- **版本化 API** — 所有接口统一挂载 `/api/v1` 前缀，便于后续演进
 - **多模式消息路由** — Echo 回显、Broadcast 广播、Room Chat 房间聊天、Ping/Pong 心跳保活
 - **Pydantic v2 数据校验** — 所有消息模型强类型校验，入站/出站消息结构化保障
 - **连接生命周期管理** — 自动注册/注销、房间机制、空房间自动清理
 - **结构化日志** — loguru 双模式输出（JSON 生产环境 / 彩色控制台开发环境），日志轮转与自动清理
 - **配置驱动** — Pydantic Settings 统一配置，支持 `.env` 文件与环境变量，类型安全
-- **CLI 工具** — 内置 `x-HanChuan` 命令行工具，一键启动服务
 - **容器化部署** — Docker 多阶段构建、tini PID 1、非 root 运行、Docker Compose 编排
-- **依赖锁定** — uv 包管理 + `uv.lock` 锁定文件，保证环境一致性
 
 ## 项目结构
 
 ```
 x-HanChuan/
 ├── src/                            # 源码根目录
-│   ├── __init__.py                 # 包元数据与版本信息
-│   ├── __main__.py                 # CLI 入口（Click 命令组）
-│   ├── main.py                     # FastAPI 应用入口
-│   ├── api/                        # API 路由与消息处理
+│   ├── __init__.py                 # 包元数据
+│   ├── main.py                     # 应用入口（FastAPI + CLI + 生命周期管理）
+│   ├── api/                        # API 路由层
+│   │   ├── __init__.py             # 路由模块导出
+│   │   ├── router.py               # 路由聚合器（统一注册 v1 路由）
+│   │   ├── response.py             # 统一 JSON 响应构造
+│   │   └── v1/                     # v1 版本路由
+│   │       ├── __init__.py
+│   │       ├── system.py           # 系统路由（/、/health）
+│   │       └── websocket.py        # WebSocket 路由（/ws）
+│   ├── services/                   # 业务服务层
+│   │   ├── __init__.py
+│   │   └── message_service.py      # 消息业务处理（echo/broadcast/chat/ping）
+│   ├── connection/                 # 连接管理层
+│   │   └── manager.py              # WebSocket 连接管理器（注册/注销/广播/房间）
+│   ├── schemas/                    # 数据模型层（Schemas）
+│   │   ├── __init__.py
+│   │   ├── common.py               # 通用响应模型（ApiResponse / 分页模型）
+│   │   └── message.py              # Pydantic 消息模型（BaseMessage 继承体系）
 │   ├── constants/                  # 常量与枚举
-│   │   ├── constants.py            # 全局常量（APP_NAME / APP_VERSION 等）
+│   │   ├── __init__.py
+│   │   ├── constants.py            # 全局常量（APP_NAME / APP_VERSION / API_PREFIX 等）
 │   │   ├── enums.py                # 业务枚举（MessageType / CommonStatus）
 │   │   └── base.py                 # 可描述枚举基类
-│   ├── connection/                 # 连接管理
-│   │   └── manager.py              # WebSocket 连接管理器（注册/注销/广播/房间）
-│   ├── core/                       # 核心基础设施
-│   │   ├── config.py               # Pydantic Settings 配置类
-│   │   └── logger.py               # loguru 日志（JSON / 彩色控制台）
-│   └── schemas/                    # 数据模型层（Schemas）
-│       └── message.py              # Pydantic 消息模型（BaseMessage 继承体系）
+│   └── core/                       # 核心基础设施
+│       ├── __init__.py
+│       ├── config.py               # Pydantic Settings 配置类
+│       └── logger.py               # loguru 日志（JSON / 彩色控制台）
 ├── examples/                       # 参考客户端实现
 │   ├── 01_echo.py                  # Echo 回显
 │   ├── 02_broadcast.py             # 广播
 │   ├── 03_room_chat.py             # 房间聊天
 │   └── 04_heartbeat.py             # 心跳检测
 ├── pyproject.toml                  # 项目配置与依赖声明
-├── uv.lock                         # 依赖锁定文件
+├── uv.lock                         # 依赖锁定文件（提交到 Git）
 ├── uv.toml                         # uv 包管理器配置
 ├── Dockerfile                      # Docker 多阶段构建
 ├── docker-compose.yml              # Docker Compose 编排
 ├── config.yaml.example             # YAML 配置参考
 ├── .env.example                    # 环境变量参考
-├── CHANGELOG.md                    # 版本变更日志
 ├── LICENSE                         # MIT 许可证
 ├── README.md                       # 中文文档
 └── README.en.md                    # 英文文档
@@ -59,67 +71,77 @@ x-HanChuan/
 
 ```mermaid
 graph TB
-    subgraph 客户端层
+    subgraph 客户端
         C1[WebSocket Client]
-        C2[CLI 客户端]
-        C3[浏览器]
+        C3[浏览器 / HTTP Client]
     end
 
-    subgraph 接入层
-        GW[FastAPI + WebSocket /api/v1/ws 端点]
+    subgraph API 层
+        direction TB
+        R[router.py — 路由聚合<br/>prefix=/api/v1]
+        S[system.py — 系统路由<br/>GET / · GET /health]
+        W[websocket.py — WebSocket 路由<br/>WS /ws]
     end
 
-    subgraph 消息处理层
-        ECHO[Echo 回显]
-        BROADCAST[Broadcast 广播]
-        CHAT[Chat 房间聊天]
-        PING[Ping/Pong 心跳]
+    subgraph 业务服务层
+        MS[MessageService<br/>dispatch / echo / broadcast / chat]
     end
 
     subgraph 连接管理层
-        CM[ConnectionManager<br/>连接注册/注销/广播/房间]
+        CM[ConnectionManager<br/>连接注册 · 注销 · 广播 · 房间]
     end
 
     subgraph 基础设施层
         CFG[Config<br/>Pydantic Settings]
         LOG[Logger<br/>loguru]
-        CLI_MOD[CLI<br/>Click + Rich]
+        SCH[Schemas<br/>Pydantic v2 模型校验]
     end
 
-    C1 --> GW
-    C2 --> GW
-    C3 --> GW
-    GW --> ECHO
-    GW --> BROADCAST
-    GW --> CHAT
-    GW --> PING
-    ECHO --> CM
-    BROADCAST --> CM
-    CHAT --> CM
+    C1 --> W
+    C3 --> S
+    R --> S
+    R --> W
+    W --> MS
+    S --> MS
+    MS --> CM
+    MS --> SCH
     CM --> CFG
     CM --> LOG
-    CLI_MOD --> CFG
-    CLI_MOD --> LOG
+```
+
+### 请求流转流程
+
+```mermaid
+flowchart LR
+    A[客户端] -->|HTTP / WS| B[API 层<br/>路由 · JSON 解析 · 错误回写]
+    B -->|parsed dict| C[Services 层<br/>消息校验 · 业务分发]
+    C -->|操作连接| D[Connection 层<br/>广播 · 房间管理]
+    C -->|返回结果| B
+    B -->|响应| A
 ```
 
 ### 消息处理流程
 
 ```mermaid
 flowchart TD
-    A[客户端发送 JSON 消息] --> B{解析 JSON}
-    B -->|无效| C[返回 ErrorMessage]
-    B -->|有效| D{校验 BaseMessage}
-    D -->|校验失败| C
-    D -->|校验成功| E{type 字段路由}
+    A[客户端发送 JSON 消息] --> B["api/v1/websocket.py<br/>JSON 解析"]
+    B -->|解析失败| ERR[返回 ErrorMessage]
+    B -->|解析成功| C["services/message_service.py<br/>dispatch()"]
 
-    E -->|echo| F[_handle_echo<br/>原样返回]
-    E -->|broadcast| G[_handle_broadcast<br/>广播给所有人]
-    E -->|chat| H[_handle_chat<br/>转发给房间成员]
-    E -->|ping| I[_handle_ping<br/>返回 pong]
-    E -->|未知类型| C
+    C -->|校验失败| ERR
+    C -->|echo| D[_handle_echo<br/>原样返回]
+    C -->|broadcast| E[_handle_broadcast<br/>广播给所有人]
+    C -->|chat| F[_handle_chat<br/>转发给房间成员]
+    C -->|ping| G[_handle_ping<br/>返回 pong]
+    C -->|未知类型| ERR
 
-    G --> J[ConnectionManager.broadcast]
-    H --> K[ConnectionManager.broadcast_to_room]
+    E --> H[ConnectionManager.broadcast]
+    F --> I[ConnectionManager.broadcast_to_room]
+
+    D --> RESP[返回响应 dict]
+    G --> RESP
+    H --> RESP
+    I --> RESP
 ```
 
 ## 快速开始
@@ -179,16 +201,29 @@ cp .env.example .env
 
 ### 4. 启动服务
 
-#### 本地开发（热重载）
+有两种启动方式，效果相同：
+
+#### 方式一：CLI 启动（推荐）
 
 ```bash
-uv run x-HanChuan serve --reload
+# 本地开发（热重载）
+uv run x-HanChuan --reload
+
+# 生产环境
+uv run x-HanChuan --host 0.0.0.0 --port 8765
+
+# 查看帮助
+uv run x-HanChuan --help
 ```
 
-#### 生产环境
+#### 方式二：uvicorn 直接启动
 
 ```bash
-uv run x-HanChuan serve --host 0.0.0.0 --port 8765
+# 本地开发（热重载）
+uv run uvicorn src.main:app --reload
+
+# 生产环境
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8765
 ```
 
 #### Docker 容器部署
@@ -219,12 +254,21 @@ uv run isort src/
 uv run ruff check src/
 uv run mypy src/
 
-# 依赖漏洞扫描
-uv run pip-audit
-
 # 查看当前配置
-uv run x-HanChuan config
+uv run x-HanChuan --help
 ```
+
+## API 端点
+
+所有端点统一挂在 `/api/v1` 前缀下。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/v1/` | 服务基本信息 |
+| `GET` | `/api/v1/health` | 健康检查（在线连接数、房间数） |
+| `WS` | `/api/v1/ws` | WebSocket 通信端点 |
+| `GET` | `/docs` | Swagger UI 交互式文档 |
+| `GET` | `/redoc` | ReDoc 文档 |
 
 ## 示例说明
 
@@ -274,26 +318,16 @@ Ping/Pong 保活检测。客户端定期发送 Ping，服务器回复 Pong，用
 
 ## 技术栈
 
-| 分类         | 技术                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------ |
-| **Web 框架** | [FastAPI](https://fastapi.tiangolo.com/) — 高性能异步 Web 框架                                                  |
-| **ASGI 服务器** | [Uvicorn](https://www.uvicorn.org/) — 基于 uvloop 的 ASGI 服务器                                               |
-| **WebSocket** | [websockets](https://websockets.readthedocs.io/) — Python WebSocket 库                                  |
-| **数据校验**   | [Pydantic](https://docs.pydantic.dev/) / [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) |
-| **CLI 工具** | [Click](https://click.palletsprojects.com/) + [Rich](https://rich.readthedocs.io/)                      |
-| **包管理**    | [uv](https://docs.astral.sh/uv/) — 高性能 Python 包管理器                                                       |
-| **代码质量**   | [Ruff](https://docs.astral.sh/ruff/) / [Black](https://black.readthedocs.io/) / [mypy](https://mypy.readthedocs.io/) |
-
-## 配置说明
-
-所有配置项均有默认值，可通过环境变量或 `.env` 文件覆盖：
-
-| 变量名        | 说明    | 默认值       |
-| ---------- | ----- | --------- |
-| `HOST`     | 监听地址  | `0.0.0.0` |
-| `PORT`     | 监听端口  | `8765`    |
-| `DEBUG`    | 调试模式  | `true`    |
-| `LOG_LEVEL` | 日志级别  | `INFO`    |
+| 分类 | 技术 |
+|------|------|
+| **Web 框架** | [FastAPI](https://fastapi.tiangolo.com/) — 高性能异步 Web 框架 |
+| **ASGI 服务器** | [Uvicorn](https://www.uvicorn.org/) — 基于 uvloop 的 ASGI 服务器 |
+| **WebSocket** | [websockets](https://websockets.readthedocs.io/) — Python WebSocket 库 |
+| **数据校验** | [Pydantic](https://docs.pydantic.dev/) / [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) |
+| **CLI 工具** | [argparse](https://docs.python.org/3/library/argparse.html) — Python 标准库命令行解析 |
+| **日志** | [loguru](https://github.com/Delgan/loguru) — 简洁优雅的 Python 日志库 |
+| **包管理** | [uv](https://docs.astral.sh/uv/) — 高性能 Python 包管理器 |
+| **代码质量** | [Ruff](https://docs.astral.sh/ruff/) / [Black](https://black.readthedocs.io/) / [mypy](https://mypy.readthedocs.io/) |
 
 ## 开发指南
 
@@ -302,12 +336,23 @@ Ping/Pong 保活检测。客户端定期发送 Ping，服务器回复 Pong，用
 | 项目 | 规范 |
 |---|---|
 | **语言** | 文档字符串、注释、日志、CLI 帮助使用**简体中文**；代码标识符使用英文 |
-| **导入** | `src/` 内使用相对导入 |
+| **导入** | `src/` 内使用相对导入（如 `from ..schemas.message import ...`） |
 | **文档字符串** | Google 风格，包含 `Args:` / `Returns:` / `Raises:` |
 | **类型标注** | 所有函数签名均需类型注解 |
 | **日志** | 使用 loguru，从 `src.core.logger` 导入 `logger` |
-| **命名** | 类名 PascalCase，函数名 snake_case，私有方法 `_前缀` |
+| **命名** | 类名 PascalCase，函数名 snake_case，私有方法 `_前缀`，枚举成员 UPPER_SNAKE_CASE |
 | **行宽** | 88（ruff + black） |
+
+### 分层职责
+
+| 层级 | 目录 | 职责 |
+|------|------|------|
+| **API 路由层** | `src/api/` | HTTP/WS 端点注册、JSON 解析、错误回写 |
+| **业务服务层** | `src/services/` | 消息校验、业务分发、状态查询 |
+| **连接管理层** | `src/connection/` | WebSocket 连接注册/注销、广播、房间管理 |
+| **数据模型层** | `src/schemas/` | Pydantic 模型定义（请求/响应/消息） |
+| **常量层** | `src/constants/` | 全局常量、枚举定义 |
+| **基础设施层** | `src/core/` | 配置加载、日志系统 |
 
 ### 运行测试
 
@@ -322,7 +367,7 @@ uv run pytest --cov=src --cov-report=html
 uv run ruff check src/       # lint
 uv run black src/            # 格式化
 uv run isort src/            # import 排序
-mypy src/             # 类型检查
+uv run mypy src/             # 类型检查
 ```
 
 ## 许可证

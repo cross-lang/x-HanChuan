@@ -1,9 +1,10 @@
 """
 FastAPI 应用入口
 
-创建应用实例、配置中间件，并注册 API 路由。
+创建应用实例、配置中间件、注册 API 路由，并提供 CLI 启动命令。
+直接运行 ``uv run x-HanChuan`` 即可启动服务。
 """
-
+import argparse
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -14,6 +15,7 @@ from .constants.constants import APP_NAME, APP_VERSION, APP_DESCRIPTION
 from .core.config import settings
 from .core.logger import logger, setup_logging
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理。
@@ -23,9 +25,8 @@ async def lifespan(app: FastAPI):
     setup_logging()
 
     logger.info(f"{APP_NAME} v{APP_VERSION} starting up...")
-    logger.info(f"Environment: {settings.app_env}")
-    logger.info(f"Debug mode: {settings.server.debug}")
-    logger.info(f"Listening on: {settings.server.host}:{settings.server.port}")
+    logger.info(f"Debug mode: {settings.debug}")
+    logger.info(f"Listening on: {settings.host}:{settings.port}")
 
     yield
 
@@ -51,3 +52,43 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+
+def main() -> None:
+    """CLI 入口（pyproject.toml 中的 entry point）。"""
+    parser = argparse.ArgumentParser(
+        prog="x-HanChuan",
+        description="x-HanChuan（汉川） — 基于 WebSocket 协议的实时通信服务",
+    )
+    parser.add_argument(
+        "-V", "--version",
+        action="version",
+        version=f"x-HanChuan {APP_VERSION}",
+    )
+    parser.add_argument("--host", default="0.0.0.0", help="服务器监听地址（默认 0.0.0.0）")
+    parser.add_argument("--port", default=8765, type=int, help="服务器监听端口（默认 8765）")
+    parser.add_argument("--reload", action="store_true", help="启用热重载（开发模式）")
+    args = parser.parse_args()
+
+    import uvicorn
+
+    setup_logging()
+
+    print(f"x-HanChuan 服务器启动中...")
+    print(f"  地址:     ws://{args.host}:{args.port}/api/v1/ws")
+    print(f"  热重载:   {'是' if args.reload else '否'}")
+    print(f"  API 文档: http://{args.host}:{args.port}/docs")
+
+    logger.info(f"服务器启动中：{args.host}:{args.port}")
+
+    uvicorn.run(
+        "src.main:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        log_level="info",
+    )
+
+
+if __name__ == "__main__":
+    main()
