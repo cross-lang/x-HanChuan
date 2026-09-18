@@ -7,21 +7,30 @@ FastAPI WebSocket 服务器主模块
 - 房间聊天（Room Chat）：消息仅转发给同一房间内的其他成员
 - 心跳（Ping/Pong）：连接保活检测
 """
-import asyncio
 import json
 import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
+from .constants.constants import APP_NAME, APP_VERSION
 from .core.logger import logger, setup_logging
 from .connection.manager import ConnectionManager
-from .models.message import MessageType
+from .constants.enums import MessageType
+from .models.message import (
+    BaseMessage,
+    BroadcastMessage,
+    ChatMessage,
+    ConnectedMessage,
+    EchoMessage,
+    ErrorMessage,
+    PongMessage,
+)
 
 app = FastAPI(
-    title="x-websocket",
+    title=APP_NAME,
     description="基于 WebSocket 协议的实时通信演示应用",
-    version="0.1.0",
+    version=APP_VERSION,
 )
 
 # CORS 中间件（开发环境允许所有来源）
@@ -65,12 +74,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     await manager.connect(websocket, client_id)
 
     # 发送连接确认
-    await websocket.send_json({
-        "type": MessageType.CONNECTED,
-        "message": "连接已建立",
-        "client_id": client_id,
-        "timestamp": asyncio.get_running_loop().time(),
-    })
+    connected = ConnectedMessage(message="连接已建立", client_id=client_id)
+    await websocket.send_json(connected.model_dump())
 
     try:
         while True:
@@ -89,14 +94,23 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 # ---------------------------------------------------------------------------
 
 async def _dispatch(ws: WebSocket, client_id: str, raw: str) -> None:
-    """解析消息并根据 type 字段路由到对应处理函数"""
+    """解析消息并根据 type 字段路由到对应处理函数
+
+    先用 BaseMessage 校验 JSON 格式与 type 字段，再分发到具体处理函数。
+    """
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         await _send_error(ws, "无效的 JSON 格式")
         return
 
-    msg_type = data.get("type")
+    try:
+        base = BaseMessage.model_validate(data)
+    except Exception:
+        await _send_error(ws, "消息格式校验失败")
+        return
+
+    msg_type = base.type
 
     if msg_type == MessageType.ECHO:
         await _handle_echo(ws, client_id, data)
@@ -116,62 +130,58 @@ async def _dispatch(ws: WebSocket, client_id: str, raw: str) -> None:
 
 async def _handle_echo(ws: WebSocket, client_id: str, data: dict) -> None:
     """回显：将消息原样返回给发送者"""
-    content = data.get("content", "")
-    logger.debug(f"[Echo] 客户端 {client_id}: {content}")
-    await ws.send_json({
-        "type": MessageType.ECHO,
-        "content": content,
-        "timestamp": asyncio.get_running_loop().time(),
-    })
+    try:
+        msg = EchoMessage.model_validate(data)
+    except Exception:
+        await _send_error(ws, "Echo 消息格式错误")
+        return
+    logger.debug(f"[Echo] 客户端 {client_id}: {msg.content}")
+    response = EchoMessage(content=msg.content)
+    await ws.send_json(response.model_dump())
 
 
 async def _handle_broadcast(ws: WebSocket, client_id: str, data: dict) -> None:
     """广播：将消息转发给所有已连接客户端（含发送者）"""
-    content = data.get("content", "")
-    logger.info(f"[Broadcast] 客户端 {client_id}: {content}")
-    message = json.dumps({
-        "type": MessageType.BROADCAST,
-        "content": content,
-        "sender": client_id,
-        "timestamp": asyncio.get_running_loop().time(),
-    })
-    await manager.broadcast(message)
+    try:
+        msg = BroadcastMessage.model_validate(data)
+    except Exception:
+        await _send_error(ws, "Broadcast 消息格式错误")
+        return
+    logger.info(f"[Broadcast] 客户端 {client_id}: {msg.content}")
+    response = BroadcastMessage(content=msg.content, sender=client_id)
+    await manager.broadcast(response.model_dump_json())
 
 
 async def _handle_chat(ws: WebSocket, client_id: str, data: dict) -> None:
     """房间聊天：客户端自动加入房间，消息转发给同房间其他成员"""
-    content = data.get("content", "")
-    room_id = data.get("room_id", "default")
+    try:
+        msg = ChatMessage.model_validate(data)
+    except Exception:
+        await _send_error(ws, "Chat 消息格式错误")
+        return
 
     # 自动加入房间
-    await manager.join_room(room_id, client_id)
+    await manager.join_room(msg.room_id, client_id)
 
-    logger.info(f"[Chat] 客户端 {client_id} → 房间 {room_id}: {content}")
-    message = json.dumps({
-        "type": MessageType.CHAT,
-        "content": content,
-        "room_id": room_id,
-        "sender": client_id,
-        "timestamp": asyncio.get_running_loop().time(),
-    })
-    await manager.broadcast_to_room(room_id, message, exclude=client_id)
+    logger.info(f"[Chat] 客户端 {client_id} → 房间 {msg.room_id}: {msg.content}")
+    response = ChatMessage(
+        content=msg.content, room_id=msg.room_id, sender=client_id
+    )
+    await manager.broadcast_to_room(
+        msg.room_id, response.model_dump_json(), exclude=client_id
+    )
 
 
 async def _handle_ping(ws: WebSocket) -> None:
     """心跳：返回 Pong 响应"""
-    await ws.send_json({
-        "type": MessageType.PONG,
-        "timestamp": asyncio.get_running_loop().time(),
-    })
+    response = PongMessage()
+    await ws.send_json(response.model_dump())
 
 
 async def _send_error(ws: WebSocket, message: str) -> None:
     """发送错误消息"""
-    await ws.send_json({
-        "type": MessageType.ERROR,
-        "message": message,
-        "timestamp": asyncio.get_running_loop().time(),
-    })
+    response = ErrorMessage(message=message)
+    await ws.send_json(response.model_dump())
 
 
 # ---------------------------------------------------------------------------

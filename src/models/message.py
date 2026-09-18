@@ -7,26 +7,7 @@ from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
-
-
-class MessageType(str, Enum):
-    """消息类型枚举
-
-    每种类型对应一种 WebSocket 通信场景：
-    - ECHO: 回显消息（服务器原样返回）
-    - BROADCAST: 广播消息（转发给所有已连接客户端）
-    - CHAT: 房间聊天消息（转发给同一房间内的其他客户端）
-    - PING / PONG: 心跳检测
-    - ERROR: 错误消息
-    - CONNECTED: 连接确认消息
-    """
-    ECHO = "echo"
-    BROADCAST = "broadcast"
-    CHAT = "chat"
-    PING = "ping"
-    PONG = "pong"
-    ERROR = "error"
-    CONNECTED = "connected"
+from src.constants.enums import MessageType
 
 
 class BaseMessage(BaseModel):
@@ -86,3 +67,11 @@ class ConnectedMessage(BaseMessage):
     type: MessageType = MessageType.CONNECTED
     message: str
     client_id: str
+
+
+class PongMessage(BaseMessage):
+    """心跳响应消息
+
+    服务器收到 Ping 消息后返回此消息，用于连接保活和延迟测量。
+    """
+    type: MessageType = MessageType.PONG

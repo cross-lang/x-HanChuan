@@ -1,0 +1,23 @@
+# ============================================================
+# x-websocket 配置示例（YAML 格式）
+# ============================================================
+# 此文件仅供参考，当前项目使用 .env 文件加载配置。
+# 如需 YAML 配置支持，可自行扩展 config.py。
+#
+# 复制此文件为 config.yaml 并按需修改：
+#   cp config.yaml.example config.yaml
+# ============================================================
+
+# 服务器配置
+server:
+  host: "0.0.0.0"          # 监听地址
+  port: 8765               # 监听端口
+  debug: true              # 调试模式（生产环境设为 false）
+
+# 日志配置
+logging:
+  level: "INFO"            # 日志级别: DEBUG / INFO / WARNING / ERROR / CRITICAL
+  file_path: "logs/x-websocket.log"  # 日志文件路径
+  rotation: "1 hour"       # 轮转周期: "1 hour" / "1 day" / "100 MB"
+  retention: "7 days"      # 保留时间: "7 days" / "30 days"
+  format: "console"        # 控制台格式: "json"（生产）/ "console"（开发）

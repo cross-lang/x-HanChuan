@@ -1,6 +1,6 @@
 # x-websocket
 
-`x-websocket`是一个基于 WebSocket 协议的实时通信演示应用，采用 FastAPI 构建，通过四个渐进式示例帮助初学者快速理解 WebSocket 的核心通信机制。
+`x-websocket`是一个基于 WebSocket 协议的实时通信服务，采用 FastAPI 构建。
 
 ## 核心特征
 
@@ -35,6 +35,10 @@ x-websocket/
 │   ├── 03_room_chat.py         # 房间聊天示例
 │   └── 04_heartbeat.py         # 心跳检测示例
 ├── pyproject.toml              # 项目配置与依赖声明
+├── uv.toml                     # uv 包管理器配置
+├── Dockerfile                  # Docker 多阶段构建
+├── docker-compose.yml          # Docker Compose 编排
+├── config.yaml.example         # YAML 配置示例（参考）
 ├── .env.example                # 环境变量示例
 ├── LICENSE                     # MIT 许可证
 └── README.md
@@ -187,6 +191,35 @@ python examples/04_heartbeat.py
 | `ruff check src/`    | 代码检查              |
 | `black src/`         | 代码格式化             |
 
+## Docker 部署
+
+### 构建镜像
+
+```bash
+docker build -t x-websocket .
+```
+
+### 运行容器
+
+```bash
+docker run -d --name x-websocket -p 8765:8765 x-websocket
+```
+
+### 使用 Docker Compose
+
+```bash
+# 启动（后台）
+docker compose up -d
+
+# 查看日志
+docker compose logs -f
+
+# 停止
+docker compose down
+```
+
+配置通过 `docker-compose.yml` 中的 `environment` 或挂载 `.env` 文件实现。
+
 ## 示例说明
 
 ### 示例 1 — Echo（回显）
@@ -257,6 +290,18 @@ Ping/Pong 保活检测。客户端定期发送 Ping，服务器回复 Pong，用
 | `LOG_LEVEL` | 日志级别  | `INFO`    |
 
 ## 开发指南
+
+### 编码规范
+
+| 项目 | 规范 |
+|---|---|
+| **语言** | 文档字符串、注释、日志、CLI 帮助使用**简体中文**；代码标识符使用英文 |
+| **导入** | `src/` 内使用相对导入 |
+| **文档字符串** | Google 风格，包含 `Args:` / `Returns:` / `Raises:` |
+| **类型标注** | 所有函数签名均需类型注解 |
+| **日志** | 使用 loguru，从 `src.core.logger` 导入 `logger` |
+| **命名** | 类名 PascalCase，函数名 snake_case，私有方法 `_前缀` |
+| **行宽** | 88（ruff + black） |
 
 ### 运行测试
 
