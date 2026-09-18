@@ -1,7 +1,7 @@
 [project]
 name = "x-websocket"
 version = "0.1.0"
-description = "WebSocket-based LLM demonstration application"
+description = "基于 WebSocket 协议的实时通信演示应用"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -15,7 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Communications :: Chat",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Internet :: WWW/HTTP :: WebSocket",
 ]
 
 dependencies = [
@@ -24,14 +24,10 @@ dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "python-dotenv>=1.0",
-    "PyJWT>=2.8",
-    "cryptography>=42.0",
-    "httpx>=0.25",
-    "openai>=1.0.0",
     "rich>=13.0",
     "click>=8.0",
-    "aiofiles>=23.0",
     "websockets>=16.0",
+    "loguru>=0.7.0",
 ]
 
 [project.optional-dependencies]
@@ -43,13 +39,6 @@ dev = [
     "isort>=5.12",
     "mypy>=1.0",
     "ruff>=0.1",
-]
-openai = [
-    "openai>=1.0",
-]
-local = [
-    "transformers>=4.35",
-    "torch>=2.0",
 ]
 
 [build-system]

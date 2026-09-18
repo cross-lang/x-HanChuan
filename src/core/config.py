@@ -1,60 +1,68 @@
 """
 配置管理模块
+
+基于 Pydantic Settings 从环境变量或 `.env` 文件加载配置。
 """
-from typing import Optional
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class LoggingConfig(BaseModel):
+    """日志配置子模型
+
+    Attributes:
+        level: 日志级别（DEBUG / INFO / WARNING / ERROR / CRITICAL）
+        file_path: 日志文件路径
+        rotation: 日志轮转周期（如 "1 hour"、"100 MB"）
+        retention: 日志保留时间（如 "7 days"）
+        format: 控制台输出格式（"json" 或 "console"）
+    """
+
+    level: str = Field(default="INFO", description="日志级别")
+    file_path: str = Field(
+        default="logs/x-websocket.log", description="日志文件路径"
+    )
+    rotation: str = Field(default="1 hour", description="日志轮转周期")
+    retention: str = Field(default="7 days", description="日志保留时间")
+    format: str = Field(
+        default="console",
+        description='控制台日志格式："json"（生产环境）或 "console"（开发环境）',
+    )
+
+
 class Settings(BaseSettings):
-    """应用设置"""
+    """应用配置
+
+    优先级：环境变量 > .env 文件 > 默认值
+    """
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore"
+        extra="ignore",
     )
 
     # 服务器配置
-    host: str = Field(default="0.0.0.0")
-    port: int = Field(default=8765)
-    debug: bool = Field(default=True)
+    host: str = Field(default="0.0.0.0", description="服务器监听地址")
+    port: int = Field(default=8765, description="服务器监听端口")
+    debug: bool = Field(default=True, description="调试模式")
 
-    # 认证配置
-    jwt_secret: str = Field(...)
-    jwt_algorithm: str = Field(default="HS256")
-    token_expire_minutes: int = Field(default=60)
+    # 日志配置（扁平字段，兼容 .env 中的 LOG_LEVEL）
+    log_level: str = Field(default="INFO", description="日志级别")
 
-    # 模型提供商配置
-    llm_provider: str = Field(default="openai")
+    # 结构化日志配置（嵌套子模型）
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
-    # OpenAI 配置
-    openai_api_key: Optional[str] = Field(default=None)
-    openai_base_url: Optional[str] = Field(default=None)
-    openai_model: Optional[str] = Field(default="gpt-3.5-turbo")
+    @property
+    def effective_log_level(self) -> str:
+        """返回实际生效的日志级别。
 
-    # Kimi 配置
-    kimi_api_key: Optional[str] = Field(default=None)
-    kimi_base_url: Optional[str] = Field(default=None)
-    kimi_model: Optional[str] = Field(default="moonshot-v1-8k")
-
-    # DeepSeek 配置
-    deepseek_api_key: Optional[str] = Field(default=None)
-    deepseek_base_url: Optional[str] = Field(default=None)
-    deepseek_model: Optional[str] = Field(default="deepseek-chat")
-
-    # 本地模型配置
-    local_model_path: Optional[str] = Field(default=None)
-    local_model_name: Optional[str] = Field(default=None)
-
-    # 加密配置
-    encryption_key: Optional[str] = Field(default=None)
-
-    # 日志配置
-    log_level: str = Field(default="INFO")
-    log_file: Optional[str] = Field(default=None)
+        优先使用扁平的 ``log_level`` 字段（向后兼容），若未显式设置则
+        取 ``logging.level``。
+        """
+        return self.log_level or self.logging.level
 
 
-# 全局设置实例
+# 全局配置实例
 settings = Settings()
