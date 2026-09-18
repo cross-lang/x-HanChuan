@@ -5,10 +5,10 @@
 ## 构建与运行
 
 ```bash
-uv venv && uv pip install -e ".[dev]"
-x-websocket serve                    # 0.0.0.0:8765
-x-websocket serve --port 9000 --reload
-x-websocket config                   # 查看当前配置
+uv sync --dev
+uv run x-HanChuan serve                    # 0.0.0.0:8765
+uv run x-HanChuan serve --port 9000 --reload
+uv run x-HanChuan config                   # 查看当前配置
 ```
 
 ## 关键文件
@@ -22,9 +22,10 @@ x-websocket config                   # 查看当前配置
 | `src/constants.py` | 全局常量（`APP_NAME` / `APP_VERSION`） |
 | `src/models/message.py` | Pydantic 消息模型与 `MessageType` 枚举 |
 | `src/connection/manager.py` | 连接管理器（注册/注销/广播/房间） |
-| `examples/01_*.py` – `04_*.py` | 四个渐进式示例 |
+| `examples/01_*.py` – `04_*.py` | 四个参考客户端实现 |
 | `Dockerfile` / `docker-compose.yml` | Docker 构建与编排 |
 | `uv.toml` | uv 包管理器配置 |
+| `uv.lock` | 依赖锁定文件（提交到 Git） |
 
 ## 编码规范
 
@@ -57,6 +58,7 @@ x-websocket config                   # 查看当前配置
 2. **CORS 允许所有来源** — 开发环境 `allow_origins=["*"]`，生产环境需收紧
 3. **所有配置有默认值** — 无需 `.env` 即可运行
 4. **loguru 初始化** — `setup_logging()` 在 CLI `serve` 命令和 `startup` 事件中各调用一次，内部有 `_configured` 防重入
+5. **uv.lock 提交到 Git** — 保证所有环境依赖一致
 
 ## 文档链接
 

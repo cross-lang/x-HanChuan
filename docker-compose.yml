@@ -1,5 +1,5 @@
 # ============================================================
-# x-websocket Docker Compose
+# x-HanChuan Docker Compose
 # ============================================================
 # 用法:
 #   docker compose up -d            # 启动（后台）
@@ -9,11 +9,11 @@
 # ============================================================
 
 services:
-  x-websocket:
+  x-HanChuan:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: x-websocket
+    container_name: x-HanChuan
     restart: unless-stopped
     ports:
       - "${PORT:-8765}:8765"

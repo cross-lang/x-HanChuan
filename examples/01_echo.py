@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """
-示例 01 — Echo（回显）
+Echo 回显客户端
 
-演示 WebSocket 最基础的通信模式：
+基础 WebSocket 通信模式：
   客户端发送消息 → 服务器原样返回
 
-运行方式：
-  1. 启动服务器: x-websocket serve
-  2. 运行本示例: python examples/01_echo.py
+用法：
+  uv run python examples/01_echo.py
 """
 import asyncio
 import json
@@ -32,7 +31,7 @@ async def main() -> None:
             response = json.loads(await ws.recv())
             print(f"[客户端] 收到 ← {response['content']}")
 
-        print("\n[Echo 示例完成]")
+        print("\n[Echo 完成]")
 
 
 if __name__ == "__main__":

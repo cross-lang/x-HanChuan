@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 """
-示例 02 — Broadcast（广播）
+Broadcast 广播客户端
 
-演示一对多通信模式：
+一对多通信模式：
   客户端 A 发送消息 → 服务器转发给所有已连接客户端
 
-运行方式：
-  1. 启动服务器: x-websocket serve
-  2. 打开两个终端，分别运行:
-     python examples/02_broadcast.py
-     python examples/02_broadcast.py
-  3. 在任一终端输入消息，另一个终端将实时收到
+用法：
+  uv run python examples/02_broadcast.py
 """
 import asyncio
 import json

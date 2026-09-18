@@ -1,5 +1,5 @@
 """
-x-websocket CLI 入口
+x-HanChuan CLI 入口
 
 提供以下命令：
 - serve: 启动 WebSocket 服务器
@@ -18,9 +18,9 @@ console = Console()
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="x-websocket")
+@click.version_option(version="0.1.0", prog_name="x-HanChuan")
 def cli() -> None:
-    """x-websocket — 基于 WebSocket 协议的实时通信演示"""
+    """x-HanChuan（汉川） — 基于 WebSocket 协议的实时通信服务"""
     pass
 
 
@@ -37,7 +37,7 @@ def serve(host: str, port: int, reload: bool) -> None:
 
     console.print(
         Panel.fit(
-            f"[bold green]x-websocket[/bold green] 服务器启动中...\n"
+            f"[bold green]x-HanChuan[/bold green] 服务器启动中...\n"
             f"地址: [cyan]ws://{host}:{port}/ws[/cyan]\n"
             f"热重载: [cyan]{'是' if reload else '否'}[/cyan]\n"
             f"API 文档: [cyan]http://{host}:{port}/docs[/cyan]",

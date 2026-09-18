@@ -1,7 +1,7 @@
-# x-websocket
+# x-HanChuan
 
 #### Description
-**x-websocket** is a WebSocket-based LLM (Large Language Model) demonstration application that supports streaming conversations and chat functionality across multiple model providers (OpenAI, Kimi, DeepSeek, etc.). Built with FastAPI, it provides complete WebSocket communication, JWT authentication, and extensible LLM interfaces.
+**x-HanChuan** is a WebSocket-based LLM (Large Language Model) demonstration application that supports streaming conversations and chat functionality across multiple model providers (OpenAI, Kimi, DeepSeek, etc.). Built with FastAPI, it provides complete WebSocket communication, JWT authentication, and extensible LLM interfaces.
 
 #### Features
 - 🌐 **WebSocket Real-time Communication**: Bidirectional real-time message transmission
@@ -14,8 +14,8 @@
 
 #### Software Architecture
 ```
-x-websocket/
-├── src/x_websocket/
+x-HanChuan/
+├── src/x_HanChuan/
 │   ├── __init__.py          # Package metadata
 │   ├── __main__.py          # CLI entry point
 │   ├── server.py            # FastAPI WebSocket server
@@ -54,25 +54,21 @@ x-websocket/
 
 ##### Prerequisites
 - Python 3.11+
-- [uv](https://github.com/astral-sh/uv) package manager (recommended) or pip
+- [uv](https://github.com/astral-sh/uv) package manager
 
 ##### 1. Clone the repository
 ```bash
-git clone https://gitee.com/your-username/x-websocket.git
-cd x-websocket
+git clone https://gitee.com/your-username/x-HanChuan.git
+cd x-HanChuan
 ```
 
-##### 2. Create virtual environment and install dependencies
+##### 2. Install dependencies
 ```bash
-# Using uv (recommended)
-uv venv
-source .venv/bin/activate  # Linux/macOS
-# or .venv\Scripts\activate  # Windows
+# Sync dependencies (auto-creates .venv and installs all packages)
+uv sync
 
-uv pip install -e .
-
-# Install development dependencies (optional)
-uv pip install -e ".[dev]"
+# With development dependencies (pytest / ruff / mypy)
+uv sync --dev
 ```
 
 ##### 3. Configure environment variables
@@ -87,7 +83,7 @@ cp .env.example .env
 ##### 4. Generate JWT token
 ```bash
 # Generate authentication token for user
-x-websocket token test_user_001
+x-HanChuan token test_user_001
 ```
 
 #### Usage
@@ -95,23 +91,23 @@ x-websocket token test_user_001
 ##### Start the server
 ```bash
 # Default startup (host: 0.0.0.0, port: 8765)
-x-websocket serve
+uv run x-HanChuan serve
 
 # Custom host and port
-x-websocket serve --host 127.0.0.1 --port 8000
+uv run x-HanChuan serve --host 127.0.0.1 --port 8000
 
 # Enable hot reload (development mode)
-x-websocket serve --reload
+uv run x-HanChuan serve --reload
 ```
 
 ##### View current configuration
 ```bash
-x-websocket config
+uv run x-HanChuan config
 ```
 
 ##### Health check
 ```bash
-x-websocket health
+x-HanChuan health
 ```
 
 ##### WebSocket connection example
@@ -194,21 +190,18 @@ After starting the server, access the following URLs for API documentation:
 #### Development Guide
 
 ##### Adding new LLM providers
-1. Create a new client class in `src/x_websocket/llm/` directory, inheriting from `BaseLLM`
+1. Create a new client class in `src/x_HanChuan/llm/` directory, inheriting from `BaseLLM`
 2. Implement `generate_stream()`, `chat()`, and `get_status()` methods
 3. Register the new provider in the `LLMFactory` class
 4. Add corresponding configuration fields in the `Settings` class
 
 ##### Running tests
 ```bash
-# Install test dependencies
-uv pip install -e ".[dev]"
-
 # Run tests
-pytest tests/
+uv run pytest
 
 # Run specific test file
-python test_websocket.py
+uv run pytest tests/test_server.py
 ```
 
 #### Contributing
@@ -233,8 +226,8 @@ This project is open source under the MIT License. See the [LICENSE](LICENSE) fi
 
 #### Issue Reporting
 If you encounter any issues, please submit an Issue or contact via:
-- GitHub Issues: [Project URL](https://github.com/your-username/x-websocket/issues)
+- GitHub Issues: [Project URL](https://github.com/your-username/x-HanChuan/issues)
 - Email: john.young@foxmail.com
 
 ---
-*Thank you for using x-websocket! If you find this project useful, please give it a Star ⭐️*
+*Thank you for using x-HanChuan! If you find this project useful, please give it a Star ⭐️*

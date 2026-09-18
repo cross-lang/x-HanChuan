@@ -6,8 +6,8 @@
 """
 
 # -- 应用信息 -----------------------------------------------------------
-APP_ID: str = "x-websocket"
-APP_NAME: str = "x-websocket"
+APP_ID: str = "x-HanChuan"
+APP_NAME: str = "x-HanChuan"
 APP_DESCRIPTION: str = "一个基于 WebSocket 协议的实时通信服务"
 APP_VERSION: str = "0.1.0"
 

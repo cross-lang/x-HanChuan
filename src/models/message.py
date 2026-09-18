@@ -22,7 +22,7 @@ class BaseMessage(BaseModel):
 class EchoMessage(BaseMessage):
     """回显消息
 
-    用于演示最基础的 WebSocket 通信：客户端发送消息，服务器原样返回。
+    客户端发送消息，服务器原样返回。
     """
     type: MessageType = MessageType.ECHO
     content: str
@@ -31,7 +31,7 @@ class EchoMessage(BaseMessage):
 class BroadcastMessage(BaseMessage):
     """广播消息
 
-    用于演示一对多通信：客户端发送消息，服务器转发给所有已连接的客户端。
+    一对多通信：客户端发送消息，服务器转发给所有已连接的客户端。
     """
     type: MessageType = MessageType.BROADCAST
     content: str
@@ -41,7 +41,7 @@ class BroadcastMessage(BaseMessage):
 class ChatMessage(BaseMessage):
     """房间聊天消息
 
-    用于演示房间（Room）机制：客户端加入指定房间后，消息仅转发给同一房间内的其他成员。
+    房间机制：客户端加入指定房间后，消息仅转发给同一房间内的其他成员。
     """
     type: MessageType = MessageType.CHAT
     content: str

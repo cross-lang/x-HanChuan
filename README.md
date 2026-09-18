@@ -1,215 +1,198 @@
-# x-websocket
+# x-HanChuan
 
-`x-websocket`是一个基于 WebSocket 协议的实时通信服务，采用 FastAPI 构建。
+`x-HanChuan` 是一个基于 WebSocket 协议的实时通信服务，支持回显、广播、房间聊天、心跳保活等核心消息模式。适用于即时通讯、实时通知、协同编辑、在线协作等需要低延迟双向通信的业务场景。
 
 ## 核心特征
 
-- **Echo 回显** — 最基础的 WebSocket 通信：客户端发送，服务器原样返回
-- **Broadcast 广播** — 一对多通信：消息转发给所有已连接客户端
-- **Room Chat 房间聊天** — 房间机制：消息仅转发给同一房间内的其他成员
-- **Heartbeat 心跳** — Ping/Pong 保活检测与延迟测量
-- **CLI 工具** — 内置 `x-websocket` 命令行工具，一键启动服务器
-- **配置驱动** — 基于 Pydantic Settings 的 `.env` 配置管理，类型安全，开箱即用
+- **多模式消息路由** — Echo 回显、Broadcast 广播、Room Chat 房间聊天、Ping/Pong 心跳保活
+- **Pydantic v2 数据校验** — 所有消息模型强类型校验，入站/出站消息结构化保障
+- **连接生命周期管理** — 自动注册/注销、房间机制、空房间自动清理
+- **结构化日志** — loguru 双模式输出（JSON 生产环境 / 彩色控制台开发环境），日志轮转与自动清理
+- **配置驱动** — Pydantic Settings 统一配置，支持 `.env` 文件与环境变量，类型安全
+- **CLI 工具** — 内置 `x-HanChuan` 命令行工具，一键启动服务
+- **容器化部署** — Docker 多阶段构建、tini PID 1、非 root 运行、Docker Compose 编排
+- **依赖锁定** — uv 包管理 + `uv.lock` 锁定文件，保证环境一致性
 
 ## 项目结构
 
 ```
-x-websocket/
-├── src/                        # 源码根目录
-│   ├── __init__.py             # 包元数据与版本信息
-│   ├── __main__.py             # CLI 入口（Click 命令组）
-│   ├── server.py               # FastAPI 应用，WebSocket 端点与消息路由
-│   ├── connection/             # 连接管理
-│   │   ├── __init__.py
-│   │   └── manager.py          # WebSocket 连接管理器（注册/注销/广播/房间）
-│   ├── core/                   # 核心基础设施
-│   │   ├── __init__.py
-│   │   ├── config.py           # Pydantic Settings 配置类
-│   │   └── logger.py           # 日志配置
-│   └── models/                 # 数据模型
-│       ├── __init__.py
-│       └── message.py          # Pydantic 消息模型
-├── examples/                   # 示例代码（由浅入深）
-│   ├── 01_echo.py              # Echo 回显示例
-│   ├── 02_broadcast.py         # 广播示例
-│   ├── 03_room_chat.py         # 房间聊天示例
-│   └── 04_heartbeat.py         # 心跳检测示例
-├── pyproject.toml              # 项目配置与依赖声明
-├── uv.toml                     # uv 包管理器配置
-├── Dockerfile                  # Docker 多阶段构建
-├── docker-compose.yml          # Docker Compose 编排
-├── config.yaml.example         # YAML 配置示例（参考）
-├── .env.example                # 环境变量示例
-├── LICENSE                     # MIT 许可证
-└── README.md
+x-HanChuan/
+├── src/                            # 源码根目录
+│   ├── __init__.py                 # 包元数据与版本信息
+│   ├── __main__.py                 # CLI 入口（Click 命令组）
+│   ├── server.py                   # FastAPI 应用，WebSocket 端点与消息路由
+│   ├── constants/                  # 常量与枚举
+│   │   ├── constants.py            # 全局常量（APP_NAME / APP_VERSION 等）
+│   │   ├── enums.py                # 业务枚举（MessageType / CommonStatus）
+│   │   └── base.py                 # 可描述枚举基类
+│   ├── connection/                 # 连接管理
+│   │   └── manager.py              # WebSocket 连接管理器（注册/注销/广播/房间）
+│   ├── core/                       # 核心基础设施
+│   │   ├── config.py               # Pydantic Settings 配置类
+│   │   └── logger.py               # loguru 日志（JSON / 彩色控制台）
+│   └── models/                     # 数据模型
+│       └── message.py              # Pydantic 消息模型（BaseMessage 继承体系）
+├── examples/                       # 参考客户端实现
+│   ├── 01_echo.py                  # Echo 回显
+│   ├── 02_broadcast.py             # 广播
+│   ├── 03_room_chat.py             # 房间聊天
+│   └── 04_heartbeat.py             # 心跳检测
+├── pyproject.toml                  # 项目配置与依赖声明
+├── uv.lock                         # 依赖锁定文件
+├── uv.toml                         # uv 包管理器配置
+├── Dockerfile                      # Docker 多阶段构建
+├── docker-compose.yml              # Docker Compose 编排
+├── config.yaml.example             # YAML 配置参考
+├── .env.example                    # 环境变量参考
+├── CHANGELOG.md                    # 版本变更日志
+├── LICENSE                         # MIT 许可证
+├── README.md                       # 中文文档
+└── README.en.md                    # 英文文档
 ```
 
 ## 系统架构
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    客户端层 (Client)                  │
-│         WebSocket Client / CLI / 浏览器               │
-└──────────────────────┬──────────────────────────────┘
-                       │ ws:// / wss://
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│                   接入层 (Gateway)                    │
-│              FastAPI + WebSocket /ws 端点              │
-└──────────────────────┬──────────────────────────────┘
-                       │
-              ┌────────┼────────┐
-              ▼        ▼        ▼
-        ┌────────┐┌────────┐┌────────┐
-        │  Echo  ││Broadcast││  Chat  │   消息处理
-        │  回显   ││  广播   ││ 房间聊天 │
-        └────────┘└────────┘└────────┘
-                       │
-              ┌────────┴────────┐
-              │ ConnectionManager│               连接管理
-              │  (连接/房间/广播)  │
-              └────────┬────────┘
-                       │
-┌──────────────────────┴──────────────────────────────┐
-│                  基础设施层 (Infra)                    │
-│     Config (Pydantic Settings)  │  Logger  │  CLI    │
-└─────────────────────────────────────────────────────┘
+### 分层架构
+
+```mermaid
+graph TB
+    subgraph 客户端层
+        C1[WebSocket Client]
+        C2[CLI 客户端]
+        C3[浏览器]
+    end
+
+    subgraph 接入层
+        GW[FastAPI + WebSocket /ws 端点]
+    end
+
+    subgraph 消息处理层
+        ECHO[Echo 回显]
+        BROADCAST[Broadcast 广播]
+        CHAT[Chat 房间聊天]
+        PING[Ping/Pong 心跳]
+    end
+
+    subgraph 连接管理层
+        CM[ConnectionManager<br/>连接注册/注销/广播/房间]
+    end
+
+    subgraph 基础设施层
+        CFG[Config<br/>Pydantic Settings]
+        LOG[Logger<br/>loguru]
+        CLI_MOD[CLI<br/>Click + Rich]
+    end
+
+    C1 --> GW
+    C2 --> GW
+    C3 --> GW
+    GW --> ECHO
+    GW --> BROADCAST
+    GW --> CHAT
+    GW --> PING
+    ECHO --> CM
+    BROADCAST --> CM
+    CHAT --> CM
+    CM --> CFG
+    CM --> LOG
+    CLI_MOD --> CFG
+    CLI_MOD --> LOG
 ```
 
 ### 消息处理流程
 
-```
-客户端发送 JSON 消息
-        │
-        ▼
-  ┌─────────────┐
-  │  解析 JSON   │─── 无效 → 返回 ErrorMessage
-  └──────┬──────┘
-         │ type 字段
-    ┌────┼────┬────────┐
-    ▼    ▼    ▼        ▼
-  echo  broadcast  chat   ping
-    │    │         │       │
-    ▼    ▼         ▼       ▼
-  原样   广播给    转发给   返回
-  返回   所有人    房间成员  pong
-```
+```mermaid
+flowchart TD
+    A[客户端发送 JSON 消息] --> B{解析 JSON}
+    B -->|无效| C[返回 ErrorMessage]
+    B -->|有效| D{校验 BaseMessage}
+    D -->|校验失败| C
+    D -->|校验成功| E{type 字段路由}
 
-### 模块依赖关系
+    E -->|echo| F[_handle_echo<br/>原样返回]
+    E -->|broadcast| G[_handle_broadcast<br/>广播给所有人]
+    E -->|chat| H[_handle_chat<br/>转发给房间成员]
+    E -->|ping| I[_handle_ping<br/>返回 pong]
+    E -->|未知类型| C
 
-```
-server.py ──► connection/manager.py
-         ──► models/message.py
-         ──► core/config.py
-core/config.py ──► (Pydantic Settings, .env)
-core/logger.py ──► (Python logging)
-__main__.py ──► server.py, core/config.py (CLI 入口)
+    G --> J[ConnectionManager.broadcast]
+    H --> K[ConnectionManager.broadcast_to_room]
 ```
 
 ## 快速开始
 
 ### 环境要求
 
-| 项目     | 要求                                        |
-| ------ | ----------------------------------------- |
-| Python | >= 3.11                                   |
-| 包管理器   | [uv](https://docs.astral.sh/uv/)（推荐）或 pip |
-| 操作系统   | Windows / Linux / macOS                   |
+| 项目 | 要求 |
+|------|------|
+| Python | >= 3.11 |
+| 包管理器 | [uv](https://docs.astral.sh/uv/) |
+
+**操作系统支持：**
+
+| 平台 | 安装 Python | 安装 uv |
+|------|------------|---------|
+| **Windows** | [python.org](https://www.python.org/downloads/) 或 `winget install Python.Python.3.11` | `powershell -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| **Linux** | `sudo apt install python3.11` (Debian/Ubuntu) 或系统包管理器 | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| **macOS** | `brew install python@3.11` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 
 ### 1. 克隆项目
 
 ```bash
-git clone https://gitee.com/yeyushilai/x-websocket.git
-cd x-websocket
+# Gitee
+git clone https://gitee.com/yeyushilai/x-HanChuan.git
+cd x-HanChuan
+
+# GitHub
+git clone https://github.com/yeyushilai/x-HanChuan.git
+cd x-HanChuan
 ```
 
-### 2. 安装依赖
+### 2. 同步依赖
 
 ```bash
-# 创建虚拟环境
-uv venv
+# 同步依赖（自动创建 .venv 并安装所有包）
+uv sync
 
-# 激活虚拟环境
-# Linux / macOS:
-source .venv/bin/activate
-# Windows:
-.venv\Scripts\activate
-
-# 安装项目依赖
-uv pip install -e .
-
-# 安装开发依赖（可选）
-uv pip install -e ".[dev]"
+# 如需开发依赖（pytest / ruff / mypy 等）
+uv sync --dev
 ```
 
-### 3. 配置环境变量（可选）
+### 3. 环境配置
 
 ```bash
 cp .env.example .env
 ```
 
-所有配置项均有默认值，无需修改即可运行。参见 [.env.example](.env.example)。
+所有配置项均有默认值，无需修改即可运行。完整参数说明：
 
-### 4. 启动服务器
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `HOST` | 服务器监听地址 | `0.0.0.0` |
+| `PORT` | 服务器监听端口 | `8765` |
+| `DEBUG` | 调试模式 | `true` |
+| `LOG_LEVEL` | 日志级别（DEBUG / INFO / WARNING / ERROR / CRITICAL） | `INFO` |
+| `LOGGING_FORMAT` | 日志格式（`json` 生产环境 / `console` 开发环境） | `console` |
+
+### 4. 启动服务
+
+#### 本地开发（热重载）
 
 ```bash
-# 默认启动（0.0.0.0:8765）
-x-websocket serve
-
-# 自定义端口
-x-websocket serve --port 9000
-
-# 开发模式（热重载）
-x-websocket serve --reload
+uv run x-HanChuan serve --reload
 ```
 
-### 5. 运行示例
-
-打开新终端，运行示例客户端：
+#### 生产环境
 
 ```bash
-# 示例 1：Echo 回显（最简单，推荐首先运行）
-python examples/01_echo.py
-
-# 示例 2：广播（需要开两个终端）
-python examples/02_broadcast.py
-
-# 示例 3：房间聊天（需要开两个终端）
-python examples/03_room_chat.py
-
-# 示例 4：心跳检测
-python examples/04_heartbeat.py
+uv run x-HanChuan serve --host 0.0.0.0 --port 8765
 ```
 
-### 常用命令
-
-| 命令                   | 说明                |
-| -------------------- | ----------------- |
-| `x-websocket serve`  | 启动 WebSocket 服务器  |
-| `x-websocket config` | 查看当前配置            |
-| `pytest tests/`      | 运行测试              |
-| `ruff check src/`    | 代码检查              |
-| `black src/`         | 代码格式化             |
-
-## Docker 部署
-
-### 构建镜像
+#### Docker 容器部署
 
 ```bash
-docker build -t x-websocket .
-```
-
-### 运行容器
-
-```bash
-docker run -d --name x-websocket -p 8765:8765 x-websocket
-```
-
-### 使用 Docker Compose
-
-```bash
-# 启动（后台）
-docker compose up -d
+# 构建并启动
+docker compose up -d --build
 
 # 查看日志
 docker compose logs -f
@@ -218,7 +201,27 @@ docker compose logs -f
 docker compose down
 ```
 
-配置通过 `docker-compose.yml` 中的 `environment` 或挂载 `.env` 文件实现。
+### 5. 常用工程命令
+
+```bash
+# 运行测试
+uv run pytest
+uv run pytest --cov=src --cov-report=html
+
+# 代码格式化
+uv run black src/
+uv run isort src/
+
+# 静态检查
+uv run ruff check src/
+uv run mypy src/
+
+# 依赖漏洞扫描
+uv run pip-audit
+
+# 查看当前配置
+uv run x-HanChuan config
+```
 
 ## 示例说明
 
@@ -306,17 +309,16 @@ Ping/Pong 保活检测。客户端定期发送 Ping，服务器回复 Pong，用
 ### 运行测试
 
 ```bash
-uv pip install -e ".[dev]"
-pytest tests/
-pytest tests/ --cov=src --cov-report=html
+uv run pytest
+uv run pytest --cov=src --cov-report=html
 ```
 
 ### 代码检查
 
 ```bash
-ruff check src/       # lint
-black src/            # 格式化
-isort src/            # import 排序
+uv run ruff check src/       # lint
+uv run black src/            # 格式化
+uv run isort src/            # import 排序
 mypy src/             # 类型检查
 ```
 

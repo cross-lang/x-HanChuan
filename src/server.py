@@ -1,7 +1,7 @@
 """
 FastAPI WebSocket 服务器主模块
 
-提供 WebSocket 端点和消息路由，演示以下 WebSocket 核心机制：
+提供 WebSocket 端点和消息路由，支持以下通信模式：
 - 回显（Echo）：服务器原样返回客户端消息
 - 广播（Broadcast）：消息转发给所有已连接客户端
 - 房间聊天（Room Chat）：消息仅转发给同一房间内的其他成员
@@ -29,7 +29,7 @@ from .models.message import (
 
 app = FastAPI(
     title=APP_NAME,
-    description="基于 WebSocket 协议的实时通信演示应用",
+    description="基于 WebSocket 协议的实时通信服务",
     version=APP_VERSION,
 )
 
@@ -50,13 +50,13 @@ manager = ConnectionManager()
 async def startup_event() -> None:
     """应用启动"""
     setup_logging()
-    logger.info(f"x-websocket 服务器启动，监听 {settings.host}:{settings.port}")
+    logger.info(f"x-HanChuan 服务器启动，监听 {settings.host}:{settings.port}")
 
 
 @app.on_event("shutdown")
 async def shutdown_event() -> None:
     """应用关闭"""
-    logger.info("x-websocket 服务器关闭")
+    logger.info("x-HanChuan 服务器关闭")
 
 
 # ---------------------------------------------------------------------------
@@ -192,9 +192,9 @@ async def _send_error(ws: WebSocket, message: str) -> None:
 async def root() -> dict:
     """根端点 — 返回服务基本信息"""
     return {
-        "name": "x-websocket",
+        "name": "x-HanChuan",
         "version": "0.1.0",
-        "description": "基于 WebSocket 协议的实时通信演示应用",
+        "description": "基于 WebSocket 协议的实时通信服务",
         "ws_endpoint": "/ws",
         "docs": "/docs",
     }

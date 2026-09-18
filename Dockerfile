@@ -1,5 +1,5 @@
 # ============================================================
-# x-websocket Dockerfile
+# x-HanChuan Dockerfile
 # ============================================================
 # 多阶段构建：builder 安装依赖，runtime 仅复制产物
 # ============================================================
@@ -7,17 +7,17 @@
 # ---- 构建阶段 ----
 FROM python:3.11-slim AS builder
 
-# 安装 uv（高速包管理器）
+# 安装 uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
 # 先复制依赖声明，利用 Docker 缓存层
-COPY pyproject.toml README.md LICENSE ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src/ src/
 
 # 安装生产依赖（不装 dev 依赖）
-RUN uv pip install --system --no-cache -e .
+RUN uv sync --locked --no-dev --no-cache
 
 # ---- 运行阶段 ----
 FROM python:3.11-slim AS runtime
@@ -30,9 +30,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tini \
     && rm -rf /var/lib/apt/lists/*
 
-# 从 builder 复制 Python 包
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# 从 builder 复制 Python 包（uv sync 安装到 .venv）
+COPY --from=builder /app/.venv /app/.venv
+
+# 将 .venv/bin 加入 PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 

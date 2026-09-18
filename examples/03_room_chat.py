@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 """
-示例 03 — Room Chat（房间聊天）
+Room Chat 房间聊天客户端
 
-演示房间（Room）机制：
+房间机制：
   客户端加入同一房间后，消息仅转发给房间内的其他成员。
 
-运行方式：
-  1. 启动服务器: x-websocket serve
-  2. 打开两个终端，分别运行:
-     python examples/03_room_chat.py
-     python examples/03_room_chat.py
-  3. 两个客户端自动加入同一房间，输入消息即可互相聊天
+用法：
+  uv run python examples/03_room_chat.py
 """
 import asyncio
 import json

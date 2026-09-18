@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 """
-示例 04 — Heartbeat（心跳检测）
+Heartbeat 心跳检测客户端
 
-演示 Ping/Pong 心跳机制：
+Ping/Pong 心跳机制：
   客户端定期发送 Ping → 服务器回复 Pong
-  用于检测连接是否存活、测量往返延迟。
+  用于检测连接存活、测量往返延迟。
 
-运行方式：
-  1. 启动服务器: x-websocket serve
-  2. 运行本示例: python examples/04_heartbeat.py
+用法：
+  uv run python examples/04_heartbeat.py
 """
 import asyncio
 import json
@@ -48,7 +47,7 @@ async def main() -> None:
         try:
             await send_pings(ws, interval=2.0)
         except KeyboardInterrupt:
-            print("\n[心跳示例结束]")
+            print("\n[心跳检测结束]")
 
 
 if __name__ == "__main__":
