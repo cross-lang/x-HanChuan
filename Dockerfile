@@ -50,12 +50,16 @@ RUN useradd --create-home appuser && chown -R appuser:appuser /app
 USER appuser
 
 # 环境变量默认值
-ENV HOST=0.0.0.0
-ENV PORT=8000
-ENV LOG_LEVEL=INFO
+ENV SERVER_HOST=0.0.0.0
+ENV SERVER_PORT=8000
+ENV LOGGING_LEVEL=INFO
 ENV LOGGING_FORMAT=json
 
 EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" || exit 1
 
 # 使用 tini 作为 PID 1，正确处理信号
 ENTRYPOINT ["tini", "--"]

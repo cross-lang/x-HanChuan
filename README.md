@@ -12,7 +12,7 @@
 - **Pydantic v2 数据校验** — 所有消息模型强类型校验，入站/出站消息结构化保障
 - **连接生命周期管理** — 自动注册/注销、房间机制、空房间自动清理
 - **结构化日志** — loguru 双模式输出（JSON 生产环境 / 彩色控制台开发环境），日志轮转与自动清理
-- **配置驱动** — Pydantic Settings 统一配置，支持 `.env` 文件与环境变量，类型安全
+- **配置驱动** — dataclass + YAML 配置，支持 `.env` / `config.yaml` / 环境变量，多环境切换
 - **容器化部署** — Docker 多阶段构建、tini PID 1、非 root 运行、Docker Compose 编排
 
 ## 项目结构
@@ -28,8 +28,8 @@ x-HanChuan/
 │   │   ├── response.py             # 统一 JSON 响应构造
 │   │   └── v1/                     # v1 版本路由
 │   │       ├── __init__.py
-│   │       ├── system.py           # 系统路由（/、/health）
-│   │       └── websocket.py        # WebSocket 路由（/ws）
+│   │       ├── health.py           # 系统路由（/health、/version）
+│   │       └── message.py          # WebSocket 路由（/channel）及管理接口
 │   ├── services/                   # 业务服务层
 │   │   ├── __init__.py
 │   │   └── message_service.py      # 消息业务处理（echo/broadcast/chat/ping）
@@ -38,6 +38,7 @@ x-HanChuan/
 │   ├── schemas/                    # 数据模型层（Schemas）
 │   │   ├── __init__.py
 │   │   ├── common.py               # 通用响应模型（ApiResponse / 分页模型）
+│   │   ├── health.py               # 健康检查响应模型
 │   │   └── message.py              # Pydantic 消息模型（BaseMessage 继承体系）
 │   ├── constants/                  # 常量与枚举
 │   │   ├── __init__.py
@@ -46,7 +47,7 @@ x-HanChuan/
 │   │   └── base.py                 # 可描述枚举基类
 │   └── core/                       # 核心基础设施
 │       ├── __init__.py
-│       ├── config.py               # Pydantic Settings 配置类
+│       ├── config.py               # dataclass + YAML 配置（Settings 单例）
 │       └── logger.py               # loguru 日志（JSON / 彩色控制台）
 ├── examples/                       # 参考客户端实现
 │   ├── 01_echo.py                  # Echo 回显
@@ -79,12 +80,12 @@ graph TB
     subgraph API 层
         direction TB
         R[router.py — 路由聚合<br/>prefix=/api/v1]
-        S[system.py — 系统路由<br/>GET / · GET /health]
-        W[websocket.py — WebSocket 路由<br/>WS /ws]
+        H[health.py — 系统路由<br/>GET /health · GET /version]
+        M[message.py — 消息路由<br/>WS /channel · GET /status · /connections · /rooms]
     end
 
     subgraph 业务服务层
-        MS[MessageService<br/>dispatch / echo / broadcast / chat]
+        MS[MessageService<br/>dispatch / echo / broadcast / chat / ping]
     end
 
     subgraph 连接管理层
@@ -92,17 +93,18 @@ graph TB
     end
 
     subgraph 基础设施层
-        CFG[Config<br/>Pydantic Settings]
+        CFG[Config<br/>dataclass + YAML]
         LOG[Logger<br/>loguru]
         SCH[Schemas<br/>Pydantic v2 模型校验]
     end
 
-    C1 --> W
-    C3 --> S
-    R --> S
-    R --> W
-    W --> MS
-    S --> MS
+    C1 --> M
+    C3 --> H
+    C3 --> M
+    R --> H
+    R --> M
+    M --> MS
+    H --> MS
     MS --> CM
     MS --> SCH
     CM --> CFG
@@ -124,7 +126,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A[客户端发送 JSON 消息] --> B["api/v1/websocket.py<br/>JSON 解析"]
+    A[客户端发送 JSON 消息] --> B["api/v1/message.py<br/>JSON 解析"]
     B -->|解析失败| ERR[返回 ErrorMessage]
     B -->|解析成功| C["services/message_service.py<br/>dispatch()"]
 
@@ -193,11 +195,19 @@ cp .env.example .env
 
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
-| `HOST` | 服务器监听地址 | `0.0.0.0` |
-| `PORT` | 服务器监听端口 | `8000` |
-| `DEBUG` | 调试模式 | `true` |
-| `LOG_LEVEL` | 日志级别（DEBUG / INFO / WARNING / ERROR / CRITICAL） | `INFO` |
+| `SERVER_HOST` | 服务器监听地址 | `0.0.0.0` |
+| `SERVER_PORT` | 服务器监听端口 | `8000` |
+| `SERVER_DEBUG` | 调试模式 | `true` |
+| `LOGGING_LEVEL` | 日志级别（DEBUG / INFO / WARNING / ERROR / CRITICAL） | `INFO` |
 | `LOGGING_FORMAT` | 日志格式（`json` 生产环境 / `console` 开发环境） | `console` |
+| `LOGGING_FILE_PATH` | 日志文件路径 | `logs/x-HanChuan-{time}.log` |
+| `LOGGING_ROTATION` | 日志轮转周期 | `1 hour` |
+| `LOGGING_RETENTION` | 日志保留时间 | `7 days` |
+| `CORS_ORIGINS` | 允许的跨域来源（逗号分隔） | `*` |
+
+除 `.env` 外，也可使用 YAML 配置文件，详见 [`config.yaml.example`](config.yaml.example)。
+
+配置优先级：**环境变量 > config.{env}.yaml > config.yaml > 代码默认值**。
 
 ### 4. 启动服务
 
@@ -269,9 +279,12 @@ uv run x-HanChuan --help
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/v1/` | 服务基本信息 |
-| `GET` | `/api/v1/health` | 健康检查（在线连接数、房间数） |
-| `WS` | `/api/v1/ws` | WebSocket 通信端点 |
+| `GET` | `/api/v1/health` | 健康检查（状态、版本、环境） |
+| `GET` | `/api/v1/version` | 版本信息 |
+| `WS` | `/api/v1/channel` | WebSocket 通信端点 |
+| `GET` | `/api/v1/status` | WebSocket 服务状态概览（在线连接数、房间数） |
+| `GET` | `/api/v1/connections` | 在线连接的客户端 ID 列表 |
+| `GET` | `/api/v1/rooms` | 活跃房间及成员列表 |
 | `GET` | `/docs` | Swagger UI 交互式文档 |
 | `GET` | `/redoc` | ReDoc 文档 |
 
@@ -328,7 +341,8 @@ Ping/Pong 保活检测。客户端定期发送 Ping，服务器回复 Pong，用
 | **Web 框架** | [FastAPI](https://fastapi.tiangolo.com/) — 高性能异步 Web 框架 |
 | **ASGI 服务器** | [Uvicorn](https://www.uvicorn.org/) — 基于 uvloop 的 ASGI 服务器 |
 | **WebSocket** | [websockets](https://websockets.readthedocs.io/) — Python WebSocket 库 |
-| **数据校验** | [Pydantic](https://docs.pydantic.dev/) / [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) |
+| **数据校验** | [Pydantic v2](https://docs.pydantic.dev/) — 强类型数据模型 |
+| **配置管理** | dataclass + [PyYAML](https://pyyaml.org/) — YAML 配置文件 + 环境变量 |
 | **CLI 工具** | [argparse](https://docs.python.org/3/library/argparse.html) — Python 标准库命令行解析 |
 | **日志** | [loguru](https://github.com/Delgan/loguru) — 简洁优雅的 Python 日志库 |
 | **包管理** | [uv](https://docs.astral.sh/uv/) — 高性能 Python 包管理器 |

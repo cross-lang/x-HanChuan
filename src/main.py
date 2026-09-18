@@ -25,8 +25,8 @@ async def lifespan(app: FastAPI):
     setup_logging()
 
     logger.info(f"{APP_NAME} v{APP_VERSION} starting up...")
-    logger.info(f"Debug mode: {settings.debug}")
-    logger.info(f"Listening on: {settings.host}:{settings.port}")
+    logger.info(f"Debug mode: {settings.server.debug}")
+    logger.info(f"Listening on: {settings.server.host}:{settings.server.port}")
 
     yield
 
@@ -75,7 +75,7 @@ def main() -> None:
     setup_logging()
 
     print(f"x-HanChuan 服务器启动中...")
-    print(f"  地址:     ws://{args.host}:{args.port}/api/v1/ws")
+    print(f"  地址:     ws://{args.host}:{args.port}/api/v1/channel")
     print(f"  热重载:   {'是' if args.reload else '否'}")
     print(f"  API 文档: http://{args.host}:{args.port}/docs")
 

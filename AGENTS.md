@@ -6,23 +6,25 @@
 
 ```bash
 uv sync --dev
-uv run x-HanChuan serve                    # 0.0.0.0:8000
-uv run x-HanChuan serve --port 9000 --reload
-uv run x-HanChuan config                   # 查看当前配置
+uv run x-HanChuan                          # 0.0.0.0:8000
+uv run x-HanChuan --port 9000 --reload
+uv run x-HanChuan --help                   # 查看帮助
 ```
 
 ## 关键文件
 
 | 文件 | 职责 |
 |---|---|
-| `src/main.py` | FastAPI 应用入口与路由注册 |
-| `src/api/routes.py` | API 路由、消息分发与处理 |
-| `src/__main__.py` | CLI 入口（Click 命令组） |
-| `src/core/config.py` | Pydantic Settings 配置（`settings` 单例） |
+| `src/main.py` | FastAPI 应用入口、CLI 入口（argparse）与路由注册 |
+| `src/api/router.py` | 路由聚合器（统一注册 v1 路由） |
+| `src/api/v1/health.py` | 系统路由（/health、/version） |
+| `src/api/v1/message.py` | WebSocket 路由（/channel）及管理接口 |
+| `src/core/config.py` | dataclass + YAML 配置（`settings` 单例） |
 | `src/core/logger.py` | loguru 日志（`logger` / `setup_logging`） |
-| `src/constants.py` | 全局常量（`APP_NAME` / `APP_VERSION`） |
+| `src/constants/` | 全局常量与枚举（`APP_NAME` / `MessageType` 等） |
 | `src/schemas/message.py` | Pydantic 数据模型与 `MessageType` 枚举 |
 | `src/connection/manager.py` | 连接管理器（注册/注销/广播/房间） |
+| `src/services/message_service.py` | 消息业务处理（echo/broadcast/chat/ping） |
 | `examples/01_*.py` – `04_*.py` | 四个参考客户端实现 |
 | `Dockerfile` / `docker-compose.yml` | Docker 构建与编排 |
 | `uv.toml` | uv 包管理器配置 |
@@ -56,9 +58,9 @@ uv run x-HanChuan config                   # 查看当前配置
 ## 注意事项
 
 1. **测试目录缺失** — `tests/` 尚未创建
-2. **CORS 允许所有来源** — 开发环境 `allow_origins=["*"]`，生产环境需收紧
-3. **所有配置有默认值** — 无需 `.env` 即可运行
-4. **loguru 初始化** — `setup_logging()` 在 CLI `serve` 命令和 `startup` 事件中各调用一次，内部有 `_configured` 防重入
+2. **CORS 允许所有来源** — 开发环境 `origins=["*"]`，生产环境需收紧
+3. **配置优先级** — 环境变量 > config.{env}.yaml > config.yaml > 代码默认值
+4. **loguru 初始化** — `setup_logging()` 在 CLI 启动和 `lifespan` 事件中各调用一次，内部有 `_configured` 防重入
 5. **uv.lock 提交到 Git** — 保证所有环境依赖一致
 
 ## 文档链接

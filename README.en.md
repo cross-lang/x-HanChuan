@@ -1,236 +1,397 @@
 # x-HanChuan
 
-[English](README.en.md) | [中文](README.md)
+English | [中文](README.md)
 
-#### Description
-**x-HanChuan** is a WebSocket-based LLM (Large Language Model) demonstration application that supports streaming conversations and chat functionality across multiple model providers (OpenAI, Kimi, DeepSeek, etc.). Built with FastAPI, it provides complete WebSocket communication, JWT authentication, and extensible LLM interfaces.
+**x-HanChuan** is a real-time communication service built on the WebSocket protocol, supporting core messaging patterns including echo, broadcast, room chat, and heartbeat keep-alive. It is designed for instant messaging, real-time notifications, collaborative editing, and other scenarios requiring low-latency bidirectional communication.
 
-#### Features
-- 🌐 **WebSocket Real-time Communication**: Bidirectional real-time message transmission
-- 🔐 **JWT Authentication**: Secure user authentication and authorization
-- 🤖 **Multi-model Support**: OpenAI, Kimi, DeepSeek, Mock, Local LLM
-- 🔌 **Extensible Architecture**: Easy to add new LLM providers
-- 📊 **Connection Management**: Room broadcasting, personal messages, and connection status management
-- ⚡ **Streaming Responses**: LLM streaming generation with real-time display
-- 🛠️ **Command-line Tool**: Rich CLI commands for server management and testing
+## Features
 
-#### Software Architecture
+- **Layered Architecture** — Clean separation between API routing, business service, and connection management layers
+- **Versioned API** — All endpoints unified under the `/api/v1` prefix for future evolution
+- **Multi-pattern Message Routing** — Echo, Broadcast, Room Chat, Ping/Pong heartbeat
+- **Pydantic v2 Validation** — Strongly-typed message models with structured inbound/outbound guarantees
+- **Connection Lifecycle Management** — Automatic registration/deregistration, room mechanism, empty room cleanup
+- **Structured Logging** — loguru dual-mode output (JSON for production / colored console for development), log rotation and auto-cleanup
+- **Configuration-driven** — dataclass + YAML config, supports `.env` / `config.yaml` / environment variables, multi-environment switching
+- **Containerized Deployment** — Docker multi-stage build, tini PID 1, non-root execution, Docker Compose orchestration
+
+## Project Structure
+
 ```
 x-HanChuan/
-├── src/x_HanChuan/
-│   ├── __init__.py          # Package metadata
-│   ├── __main__.py          # CLI entry point
-│   ├── main.py              # FastAPI application entry point
-│   ├── api/                 # API routes and message handlers
-│   ├── auth/                # Authentication module
-│   │   └── jwt_auth.py      # JWT authentication service
-│   ├── connection/          # Connection management
-│   │   └── manager.py       # WebSocket connection manager
-│   ├── core/                # Core functionality modules
-│   │   ├── __init__.py      # Package initialization
-│   │   ├── config.py        # Configuration management (Pydantic Settings)
-│   │   └── logger.py        # Logging configuration
-│   ├── handlers/            # Message handlers
-│   │   ├── base.py          # Base handler
-│   │   ├── chat.py          # Chat message handler
-│   │   ├── status.py        # Status query handler
-│   │   └── stream.py        # Streaming message handler
-│   ├── llm/                 # LLM provider interfaces
-│   │   ├── base.py          # LLM abstract base class and factory
-│   │   ├── openai.py        # OpenAI client
-│   │   ├── kimi.py          # Kimi client
-│   │   ├── deepseek.py      # DeepSeek client
-│   │   ├── mock.py          # Mock LLM (for testing)
-│   │   └── local.py         # Local LLM support
-│   └── schemas/             # Data model layer (Schemas)
-│       └── message.py       # Message data models
-├── examples/                # Example code
-│   └── basic_client.py      # Basic WebSocket client example
-├── tests/                   # Test directory
-├── pyproject.toml           # Project configuration and dependencies
-├── uv.lock                  # Dependency lock file
-├── .env.example             # Environment variables example
-└── README.md                # Project documentation
+├── src/                            # Source root
+│   ├── __init__.py                 # Package metadata
+│   ├── main.py                     # App entry (FastAPI + CLI + lifespan management)
+│   ├── api/                        # API routing layer
+│   │   ├── __init__.py             # Router module exports
+│   │   ├── router.py               # Route aggregator (registers v1 routes)
+│   │   ├── response.py             # Unified JSON response builder
+│   │   └── v1/                     # v1 version routes
+│   │       ├── __init__.py
+│   │       ├── health.py           # System routes (/health, /version)
+│   │       └── message.py          # WebSocket route (/channel) and management endpoints
+│   ├── services/                   # Business service layer
+│   │   ├── __init__.py
+│   │   └── message_service.py      # Message processing (echo/broadcast/chat/ping)
+│   ├── connection/                 # Connection management layer
+│   │   └── manager.py              # WebSocket connection manager (register/unregister/broadcast/rooms)
+│   ├── schemas/                    # Data model layer (Schemas)
+│   │   ├── __init__.py
+│   │   ├── common.py               # Common response models (ApiResponse / pagination)
+│   │   ├── health.py               # Health check response models
+│   │   └── message.py              # Pydantic message models (BaseMessage hierarchy)
+│   ├── constants/                  # Constants and enums
+│   │   ├── __init__.py
+│   │   ├── constants.py            # Global constants (APP_NAME / APP_VERSION / API_PREFIX)
+│   │   ├── enums.py                # Business enums (MessageType / CommonStatus)
+│   │   └── base.py                 # Describable enum base class
+│   └── core/                       # Core infrastructure
+│       ├── __init__.py
+│       ├── config.py               # dataclass + YAML config (Settings singleton)
+│       └── logger.py               # loguru logging (JSON / colored console)
+├── examples/                       # Reference client implementations
+│   ├── 01_echo.py                  # Echo
+│   ├── 02_broadcast.py             # Broadcast
+│   ├── 03_room_chat.py             # Room chat
+│   └── 04_heartbeat.py             # Heartbeat detection
+├── pyproject.toml                  # Project config and dependency declarations
+├── uv.lock                         # Dependency lock file (committed to Git)
+├── uv.toml                         # uv package manager config
+├── Dockerfile                      # Docker multi-stage build
+├── docker-compose.yml              # Docker Compose orchestration
+├── config.yaml.example             # YAML config reference
+├── .env.example                    # Environment variables reference
+├── LICENSE                         # MIT License
+├── README.md                       # Chinese documentation
+└── README.en.md                    # English documentation
 ```
 
-#### Installation
+## System Architecture
 
-##### Prerequisites
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv) package manager
+### Layered Architecture
 
-##### 1. Clone the repository
+```mermaid
+graph TB
+    subgraph Clients
+        C1[WebSocket Client]
+        C3[Browser / HTTP Client]
+    end
+
+    subgraph API Layer
+        direction TB
+        R[router.py — Route Aggregation<br/>prefix=/api/v1]
+        H[health.py — System Routes<br/>GET /health · GET /version]
+        M[message.py — Message Routes<br/>WS /channel · GET /status · /connections · /rooms]
+    end
+
+    subgraph Service Layer
+        MS[MessageService<br/>dispatch / echo / broadcast / chat / ping]
+    end
+
+    subgraph Connection Layer
+        CM[ConnectionManager<br/>Register · Unregister · Broadcast · Rooms]
+    end
+
+    subgraph Infrastructure Layer
+        CFG[Config<br/>dataclass + YAML]
+        LOG[Logger<br/>loguru]
+        SCH[Schemas<br/>Pydantic v2 Validation]
+    end
+
+    C1 --> M
+    C3 --> H
+    C3 --> M
+    R --> H
+    R --> M
+    M --> MS
+    H --> MS
+    MS --> CM
+    MS --> SCH
+    CM --> CFG
+    CM --> LOG
+```
+
+### Message Processing Flow
+
+```mermaid
+flowchart TD
+    A[Client sends JSON message] --> B["api/v1/message.py<br/>JSON parsing"]
+    B -->|Parse failed| ERR[Return ErrorMessage]
+    B -->|Parse succeeded| C["services/message_service.py<br/>dispatch()"]
+
+    C -->|Validation failed| ERR
+    C -->|echo| D[_handle_echo<br/>Return as-is]
+    C -->|broadcast| E[_handle_broadcast<br/>Broadcast to all]
+    C -->|chat| F[_handle_chat<br/>Forward to room members]
+    C -->|ping| G[_handle_ping<br/>Return pong]
+    C -->|Unknown type| ERR
+
+    E --> H[ConnectionManager.broadcast]
+    F --> I[ConnectionManager.broadcast_to_room]
+
+    D --> RESP[Return response dict]
+    G --> RESP
+    H --> RESP
+    I --> RESP
+```
+
+## Quick Start
+
+### Requirements
+
+| Item | Requirement |
+|------|-------------|
+| Python | >= 3.11 |
+| Package Manager | [uv](https://docs.astral.sh/uv/) |
+
+**OS Support:**
+
+| Platform | Install Python | Install uv |
+|----------|---------------|------------|
+| **Windows** | [python.org](https://www.python.org/downloads/) or `winget install Python.Python.3.11` | `powershell -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| **Linux** | `sudo apt install python3.11` (Debian/Ubuntu) or system package manager | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| **macOS** | `brew install python@3.11` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+
+### 1. Clone the Project
+
 ```bash
-git clone https://gitee.com/your-username/x-HanChuan.git
+# GitHub
+git clone https://github.com/yeyushilai/x-HanChuan.git
+cd x-HanChuan
+
+# Gitee
+git clone https://gitee.com/yeyushilai/x-HanChuan.git
 cd x-HanChuan
 ```
 
-##### 2. Install dependencies
+### 2. Sync Dependencies
+
 ```bash
 # Sync dependencies (auto-creates .venv and installs all packages)
 uv sync
 
-# With development dependencies (pytest / ruff / mypy)
+# For development dependencies (pytest / ruff / mypy)
 uv sync --dev
 ```
 
-##### 3. Configure environment variables
+### 3. Environment Configuration
+
 ```bash
-# Copy environment variables example file
 cp .env.example .env
-
-# Edit .env file, configure necessary API keys
-# At minimum, set JWT_SECRET and at least one LLM provider API key
 ```
 
-##### 4. Generate JWT token
-```bash
-# Generate authentication token for user
-x-HanChuan token test_user_001
-```
-
-#### Usage
-
-##### Start the server
-```bash
-# Default startup (host: 0.0.0.0, port: 8000)
-uv run x-HanChuan serve
-
-# Custom host and port
-uv run x-HanChuan serve --host 127.0.0.1 --port 8000
-
-# Enable hot reload (development mode)
-uv run x-HanChuan serve --reload
-```
-
-##### View current configuration
-```bash
-uv run x-HanChuan config
-```
-
-##### Health check
-```bash
-x-HanChuan health
-```
-
-##### WebSocket connection example
-After starting the server, connect to `ws://localhost:8000/api/v1/ws` via a WebSocket client. Connection flow:
-
-1. **Establish connection**: Connect to the WebSocket endpoint
-2. **Send authentication message**: Send authentication message with JWT token immediately after connection
-   ```json
-   {"token": "your_jwt_token_here"}
-   ```
-3. **Receive connection confirmation**: Server returns connection success message
-4. **Send messages**: Three message types supported:
-   - `chat`: Chat messages
-   - `stream`: Streaming generation requests
-   - `status`: Status queries
-
-##### Message formats
-###### Streaming request
-```json
-{
-  "type": "stream",
-  "prompt": "Please introduce the WebSocket protocol",
-  "model": "openai"  // Optional, defaults to configured provider
-}
-```
-
-###### Chat message
-```json
-{
-  "type": "chat",
-  "content": "Hello, this is a test message",
-  "room_id": "room_001"  // Optional, for room broadcasting
-}
-```
-
-###### Status query
-```json
-{
-  "type": "status",
-  "task_id": "task_123",
-  "action": "query"
-}
-```
-
-##### Run example client
-```bash
-# Ensure server is running
-python examples/basic_client.py
-```
-
-#### Configuration
-
-##### Environment variables
-Complete configuration reference in `.env.example` file:
+All configuration items have default values and can run without modification. Full parameter reference:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `8000` |
-| `DEBUG` | Debug mode | `true` |
-| `JWT_SECRET` | JWT secret key | **Required** |
-| `JWT_ALGORITHM` | JWT algorithm | `HS256` |
-| `LLM_PROVIDER` | Default LLM provider | `openai` |
-| `OPENAI_API_KEY` | OpenAI API key | - |
-| `KIMI_API_KEY` | Kimi API key | - |
-| `DEEPSEEK_API_KEY` | DeepSeek API key | - |
+| `SERVER_HOST` | Server listen address | `0.0.0.0` |
+| `SERVER_PORT` | Server listen port | `8000` |
+| `SERVER_DEBUG` | Debug mode | `true` |
+| `LOGGING_LEVEL` | Log level (DEBUG / INFO / WARNING / ERROR / CRITICAL) | `INFO` |
+| `LOGGING_FORMAT` | Log format (`json` for production / `console` for development) | `console` |
+| `LOGGING_FILE_PATH` | Log file path | `logs/x-HanChuan-{time}.log` |
+| `LOGGING_ROTATION` | Log rotation period | `1 hour` |
+| `LOGGING_RETENTION` | Log retention period | `7 days` |
+| `CORS_ORIGINS` | Allowed CORS origins (comma-separated) | `*` |
 
-##### Supported LLM providers
-- `openai`: OpenAI compatible API (including Azure OpenAI)
-- `kimi`: Kimi (Moonshot) API
-- `deepseek`: DeepSeek API
-- `mock`: Mock LLM, for testing and development
-- `local`: Locally deployed LLM (requires transformers)
+In addition to `.env`, YAML config files are also supported. See [`config.yaml.example`](config.yaml.example) for details.
 
-#### API Documentation
-After starting the server, access the following URLs for API documentation:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+Config priority: **Environment variables > config.{env}.yaml > config.yaml > Code defaults**.
 
-#### Development Guide
+### 4. Start the Service
 
-##### Adding new LLM providers
-1. Create a new client class in `src/x_HanChuan/llm/` directory, inheriting from `BaseLLM`
-2. Implement `generate_stream()`, `chat()`, and `get_status()` methods
-3. Register the new provider in the `LLMFactory` class
-4. Add corresponding configuration fields in the `Settings` class
+There are two ways to start, both equivalent:
 
-##### Running tests
+#### Method 1: CLI (Recommended)
+
+```bash
+# Local development (hot reload)
+uv run x-HanChuan --reload
+
+# Production
+uv run x-HanChuan --host 0.0.0.0 --port 8000
+
+# View help
+uv run x-HanChuan --help
+```
+
+#### Method 2: uvicorn directly
+
+```bash
+# Local development (hot reload)
+uv run uvicorn src.main:app --reload
+
+# Production
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+#### Method 3: Docker Container Deployment
+
+```bash
+# Build and start
+docker compose up -d --build
+
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
+After starting, visit:
+- API Documentation (Swagger): http://localhost:8000/docs
+- API Documentation (ReDoc): http://localhost:8000/redoc
+- Health Check: http://localhost:8000/api/v1/health
+
+### 5. Common Engineering Commands
+
 ```bash
 # Run tests
 uv run pytest
+uv run pytest --cov=src --cov-report=html
 
-# Run specific test file
-uv run x-HanChuan serve
+# Code formatting
+uv run black src/
+uv run isort src/
+
+# Static analysis
+uv run ruff check src/
+uv run mypy src/
+
+# View help
+uv run x-HanChuan --help
 ```
 
-#### Contributing
+## API Endpoints
 
-1.  **Fork the repository**
-2.  **Create feature branch**
-    ```bash
-    git checkout -b feat/your-feature-name
-    ```
-3.  **Commit your changes**
-    ```bash
-    git commit -m "feat: add some feature"
-    ```
-4.  **Push to the branch**
-    ```bash
-    git push origin feat/your-feature-name
-    ```
-5.  **Create a Pull Request**
+All endpoints are unified under the `/api/v1` prefix.
 
-#### License
-This project is open source under the MIT License. See the [LICENSE](LICENSE) file for details.
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/health` | Health check (status, version, environment) |
+| `GET` | `/api/v1/version` | Version information |
+| `WS` | `/api/v1/channel` | WebSocket communication endpoint |
+| `GET` | `/api/v1/status` | WebSocket service status overview (active connections, rooms) |
+| `GET` | `/api/v1/connections` | Online connection client ID list |
+| `GET` | `/api/v1/rooms` | Active rooms and member list |
+| `GET` | `/docs` | Swagger UI interactive documentation |
+| `GET` | `/redoc` | ReDoc documentation |
 
-#### Issue Reporting
-If you encounter any issues, please submit an Issue or contact via:
-- GitHub Issues: [Project URL](https://github.com/your-username/x-HanChuan/issues)
-- Email: john.young@foxmail.com
+## Examples
 
----
-*Thank you for using x-HanChuan! If you find this project useful, please give it a Star ⭐️*
+### Example 1 — Echo
+
+The most basic WebSocket communication pattern. Client sends a message, server returns it as-is.
+
+```json
+// Client sends
+{"type": "echo", "content": "Hello"}
+// Server returns (as-is)
+{"type": "echo", "content": "Hello", "timestamp": 1726000000.0}
+```
+
+### Example 2 — Broadcast
+
+One-to-many communication. Client sends a broadcast message, server forwards to all connected clients.
+
+```json
+// Client sends
+{"type": "broadcast", "content": "Hello everyone"}
+// Server forwards to all (with sender field to identify the sender)
+{"type": "broadcast", "content": "Hello everyone", "sender": "a1b2c3d4", "timestamp": 1726000000.0}
+```
+
+### Example 3 — Room Chat
+
+Room mechanism. After joining a specified room, messages are only forwarded to other members in the same room (not echoed to the sender).
+
+```json
+// Client sends
+{"type": "chat", "content": "Message in room", "room_id": "demo_room"}
+// Server forwards to other room members
+{"type": "chat", "content": "Message in room", "room_id": "demo_room", "sender": "a1b2c3d4", "timestamp": 1726000000.0}
+```
+
+### Example 4 — Heartbeat
+
+Ping/Pong keep-alive detection. Client periodically sends Ping, server replies with Pong, used for connection liveness detection and latency measurement.
+
+```json
+// Client sends
+{"type": "ping", "seq": 1}
+// Server returns
+{"type": "pong", "timestamp": 1726000000.0}
+```
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| **Web Framework** | [FastAPI](https://fastapi.tiangolo.com/) — High-performance async web framework |
+| **ASGI Server** | [Uvicorn](https://www.uvicorn.org/) — ASGI server based on uvloop |
+| **WebSocket** | [websockets](https://websockets.readthedocs.io/) — Python WebSocket library |
+| **Data Validation** | [Pydantic v2](https://docs.pydantic.dev/) — Strongly-typed data models |
+| **Configuration** | dataclass + [PyYAML](https://pyyaml.org/) — YAML config files + environment variables |
+| **CLI Tool** | [argparse](https://docs.python.org/3/library/argparse.html) — Python stdlib CLI parsing |
+| **Logging** | [loguru](https://github.com/Delgan/loguru) — Elegant Python logging library |
+| **Package Manager** | [uv](https://docs.astral.sh/uv/) — High-performance Python package manager |
+| **Code Quality** | [Ruff](https://docs.astral.sh/ruff/) / [Black](https://black.readthedocs.io/) / [mypy](https://mypy.readthedocs.io/) |
+
+## Development Guide
+
+### Coding Standards
+
+| Item | Standard |
+|------|----------|
+| **Language** | Docstrings, comments, logs, CLI help use **English**; code identifiers in English |
+| **Imports** | Relative imports within `src/` (e.g., `from ..schemas.message import ...`) |
+| **Docstrings** | Google style, with `Args:` / `Returns:` / `Raises:` sections |
+| **Type Annotations** | All function signatures require type annotations |
+| **Logging** | Use loguru, import `logger` from `src.core.logger` |
+| **Naming** | Classes PascalCase, functions snake_case, private methods `_prefix`, enum members UPPER_SNAKE_CASE |
+| **Line Width** | 88 (ruff + black) |
+
+### Layer Responsibilities
+
+| Layer | Directory | Responsibility |
+|-------|-----------|----------------|
+| **API Routing** | `src/api/` | HTTP/WS endpoint registration, JSON parsing, error writing |
+| **Business Service** | `src/services/` | Message validation, business dispatch, status queries |
+| **Connection Management** | `src/connection/` | WebSocket connection registration/unregistration, broadcast, room management |
+| **Data Models** | `src/schemas/` | Pydantic model definitions (request/response/message) |
+| **Constants** | `src/constants/` | Global constants, enum definitions |
+| **Infrastructure** | `src/core/` | Configuration loading, logging system |
+
+### Run Tests
+
+```bash
+uv run pytest
+uv run pytest --cov=src --cov-report=html
+```
+
+### Code Checks
+
+```bash
+uv run ruff check src/       # lint
+uv run black src/            # format
+uv run isort src/            # import sorting
+uv run mypy src/             # type checking
+```
+
+## License
+
+This project is open source under the [MIT License](LICENSE).
+
+## References
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [WebSocket Protocol (RFC 6455)](https://datatracker.ietf.org/doc/html/rfc6455)
+- [Pydantic Documentation](https://docs.pydantic.dev/)
+- [uv Documentation](https://docs.astral.sh/uv/)
+
+## Contact
+
+- **Author**: John Young（夜雨诗来）
+- **Email**: [john.young@foxmail.com](mailto:john.young@foxmail.com)
+- **Gitee**: [https://gitee.com/yeyushilai](https://gitee.com/yeyushilai)
+- **GitHub**: [https://github.com/yeyushilai](https://github.com/yeyushilai)

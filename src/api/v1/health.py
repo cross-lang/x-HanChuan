@@ -19,7 +19,7 @@ router = APIRouter(tags=["api/v1/health"])
 @router.get("/health", summary="健康检查")
 async def health_check() -> HealthResponse:
     """健康检查。"""
-    environment = "development" if settings.debug else "production"
+    environment = "development" if settings.server.debug else "production"
     return HealthResponse(
         status="ok",
         version=APP_VERSION,

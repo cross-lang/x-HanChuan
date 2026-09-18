@@ -28,7 +28,7 @@ async def listen(ws) -> None:
 
 
 async def main() -> None:
-    uri = "ws://localhost:8000/api/v1/ws"
+    uri = "ws://localhost:8000/api/v1/channel"
 
     async with websockets.connect(uri) as ws:
         # 启动后台监听
