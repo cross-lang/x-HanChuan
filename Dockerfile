@@ -61,4 +61,4 @@ EXPOSE 8765
 ENTRYPOINT ["tini", "--"]
 
 # 启动命令
-CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8765"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8765"]

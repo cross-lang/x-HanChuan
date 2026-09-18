@@ -1,6 +1,8 @@
-# x-HanChuan
+# 汉川（x-HanChuan）
 
-`x-HanChuan` 是一个基于 WebSocket 协议的实时通信服务，支持回显、广播、房间聊天、心跳保活等核心消息模式。适用于即时通讯、实时通知、协同编辑、在线协作等需要低延迟双向通信的业务场景。
+[English](README.en.md) | 中文
+
+`汉川（x-HanChuan）` 是一个基于 WebSocket 协议的实时通信服务，支持回显、广播、房间聊天、心跳保活等核心消息模式。适用于即时通讯、实时通知、协同编辑、在线协作等需要低延迟双向通信的业务场景。
 
 ## 核心特征
 
@@ -20,7 +22,8 @@ x-HanChuan/
 ├── src/                            # 源码根目录
 │   ├── __init__.py                 # 包元数据与版本信息
 │   ├── __main__.py                 # CLI 入口（Click 命令组）
-│   ├── server.py                   # FastAPI 应用，WebSocket 端点与消息路由
+│   ├── main.py                     # FastAPI 应用入口
+│   ├── api/                        # API 路由与消息处理
 │   ├── constants/                  # 常量与枚举
 │   │   ├── constants.py            # 全局常量（APP_NAME / APP_VERSION 等）
 │   │   ├── enums.py                # 业务枚举（MessageType / CommonStatus）
@@ -30,7 +33,7 @@ x-HanChuan/
 │   ├── core/                       # 核心基础设施
 │   │   ├── config.py               # Pydantic Settings 配置类
 │   │   └── logger.py               # loguru 日志（JSON / 彩色控制台）
-│   └── models/                     # 数据模型
+│   └── schemas/                    # 数据模型层（Schemas）
 │       └── message.py              # Pydantic 消息模型（BaseMessage 继承体系）
 ├── examples/                       # 参考客户端实现
 │   ├── 01_echo.py                  # Echo 回显
@@ -63,7 +66,7 @@ graph TB
     end
 
     subgraph 接入层
-        GW[FastAPI + WebSocket /ws 端点]
+        GW[FastAPI + WebSocket /api/v1/ws 端点]
     end
 
     subgraph 消息处理层

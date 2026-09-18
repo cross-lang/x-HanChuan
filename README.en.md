@@ -1,5 +1,7 @@
 # x-HanChuan
 
+[English](README.en.md) | [中文](README.md)
+
 #### Description
 **x-HanChuan** is a WebSocket-based LLM (Large Language Model) demonstration application that supports streaming conversations and chat functionality across multiple model providers (OpenAI, Kimi, DeepSeek, etc.). Built with FastAPI, it provides complete WebSocket communication, JWT authentication, and extensible LLM interfaces.
 
@@ -18,7 +20,8 @@ x-HanChuan/
 ├── src/x_HanChuan/
 │   ├── __init__.py          # Package metadata
 │   ├── __main__.py          # CLI entry point
-│   ├── server.py            # FastAPI WebSocket server
+│   ├── main.py              # FastAPI application entry point
+│   ├── api/                 # API routes and message handlers
 │   ├── auth/                # Authentication module
 │   │   └── jwt_auth.py      # JWT authentication service
 │   ├── connection/          # Connection management
@@ -39,7 +42,7 @@ x-HanChuan/
 │   │   ├── deepseek.py      # DeepSeek client
 │   │   ├── mock.py          # Mock LLM (for testing)
 │   │   └── local.py         # Local LLM support
-│   └── models/              # Data models
+│   └── schemas/             # Data model layer (Schemas)
 │       └── message.py       # Message data models
 ├── examples/                # Example code
 │   └── basic_client.py      # Basic WebSocket client example
@@ -111,7 +114,7 @@ x-HanChuan health
 ```
 
 ##### WebSocket connection example
-After starting the server, connect to `ws://localhost:8765/ws` via a WebSocket client. Connection flow:
+After starting the server, connect to `ws://localhost:8765/api/v1/ws` via a WebSocket client. Connection flow:
 
 1. **Establish connection**: Connect to the WebSocket endpoint
 2. **Send authentication message**: Send authentication message with JWT token immediately after connection
@@ -201,7 +204,7 @@ After starting the server, access the following URLs for API documentation:
 uv run pytest
 
 # Run specific test file
-uv run pytest tests/test_server.py
+uv run x-HanChuan serve
 ```
 
 #### Contributing

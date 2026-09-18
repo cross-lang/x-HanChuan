@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
-from .server import app
+from .main import app
 from .core.config import settings
 from .core.logger import logger, setup_logging
 
@@ -38,7 +38,7 @@ def serve(host: str, port: int, reload: bool) -> None:
     console.print(
         Panel.fit(
             f"[bold green]x-HanChuan[/bold green] 服务器启动中...\n"
-            f"地址: [cyan]ws://{host}:{port}/ws[/cyan]\n"
+            f"地址: [cyan]ws://{host}:{port}/api/v1/ws[/cyan]\n"
             f"热重载: [cyan]{'是' if reload else '否'}[/cyan]\n"
             f"API 文档: [cyan]http://{host}:{port}/docs[/cyan]",
             title="服务器配置",
@@ -48,7 +48,7 @@ def serve(host: str, port: int, reload: bool) -> None:
     logger.info(f"服务器启动中：{host}:{port}")
 
     uvicorn.run(
-        "src.server:app",
+        "src.main:app",
         host=host,
         port=port,
         reload=reload,

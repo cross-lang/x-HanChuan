@@ -32,7 +32,7 @@ async def listen(ws) -> None:
 
 
 async def main() -> None:
-    uri = "ws://localhost:8765/ws"
+    uri = "ws://localhost:8765/api/v1/ws"
 
     async with websockets.connect(uri) as ws:
         listen_task = asyncio.create_task(listen(ws))

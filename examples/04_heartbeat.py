@@ -36,7 +36,7 @@ async def send_pings(ws, interval: float = 2.0) -> None:
 
 
 async def main() -> None:
-    uri = "ws://localhost:8765/ws"
+    uri = "ws://localhost:8765/api/v1/ws"
 
     async with websockets.connect(uri) as ws:
         # 接收连接确认

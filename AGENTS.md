@@ -15,12 +15,13 @@ uv run x-HanChuan config                   # 查看当前配置
 
 | 文件 | 职责 |
 |---|---|
-| `src/server.py` | FastAPI 应用，WebSocket 端点，消息分发 |
+| `src/main.py` | FastAPI 应用入口与路由注册 |
+| `src/api/routes.py` | API 路由、消息分发与处理 |
 | `src/__main__.py` | CLI 入口（Click 命令组） |
 | `src/core/config.py` | Pydantic Settings 配置（`settings` 单例） |
 | `src/core/logger.py` | loguru 日志（`logger` / `setup_logging`） |
 | `src/constants.py` | 全局常量（`APP_NAME` / `APP_VERSION`） |
-| `src/models/message.py` | Pydantic 消息模型与 `MessageType` 枚举 |
+| `src/schemas/message.py` | Pydantic 数据模型与 `MessageType` 枚举 |
 | `src/connection/manager.py` | 连接管理器（注册/注销/广播/房间） |
 | `examples/01_*.py` – `04_*.py` | 四个参考客户端实现 |
 | `Dockerfile` / `docker-compose.yml` | Docker 构建与编排 |
@@ -30,7 +31,7 @@ uv run x-HanChuan config                   # 查看当前配置
 ## 编码规范
 
 - **语言**: 文档字符串、注释、日志消息、CLI 帮助使用**简体中文**；变量名/代码标识符使用英文
-- **导入**: `src/` 内使用相对导入（`from ..models.message import ...`）
+- **导入**: `src/` 内使用相对导入（`from ..schemas.message import ...`）
 - **文档字符串**: Google 风格，包含 `Args:`、`Returns:`、`Raises:` 段落，使用中文
 - **类型标注**: 所有函数签名均需类型注解
 - **异步**: WebSocket 处理函数均为 `async`
@@ -41,7 +42,7 @@ uv run x-HanChuan config                   # 查看当前配置
 
 ## 消息类型
 
-`MessageType` 枚举定义在 `src/models/message.py`：
+`MessageType` 枚举定义在 `src/schemas/message.py`：
 
 | 类型 | 处理函数 | 说明 |
 |---|---|---|
