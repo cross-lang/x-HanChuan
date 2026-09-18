@@ -93,7 +93,7 @@ x-HanChuan token test_user_001
 
 ##### Start the server
 ```bash
-# Default startup (host: 0.0.0.0, port: 8765)
+# Default startup (host: 0.0.0.0, port: 8000)
 uv run x-HanChuan serve
 
 # Custom host and port
@@ -114,7 +114,7 @@ x-HanChuan health
 ```
 
 ##### WebSocket connection example
-After starting the server, connect to `ws://localhost:8765/api/v1/ws` via a WebSocket client. Connection flow:
+After starting the server, connect to `ws://localhost:8000/api/v1/ws` via a WebSocket client. Connection flow:
 
 1. **Establish connection**: Connect to the WebSocket endpoint
 2. **Send authentication message**: Send authentication message with JWT token immediately after connection
@@ -169,7 +169,7 @@ Complete configuration reference in `.env.example` file:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `8765` |
+| `PORT` | Server port | `8000` |
 | `DEBUG` | Debug mode | `true` |
 | `JWT_SECRET` | JWT secret key | **Required** |
 | `JWT_ALGORITHM` | JWT algorithm | `HS256` |
@@ -187,8 +187,8 @@ Complete configuration reference in `.env.example` file:
 
 #### API Documentation
 After starting the server, access the following URLs for API documentation:
-- Swagger UI: `http://localhost:8765/docs`
-- ReDoc: `http://localhost:8765/redoc`
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
 #### Development Guide
 

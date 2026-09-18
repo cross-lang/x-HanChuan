@@ -194,7 +194,7 @@ cp .env.example .env
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `HOST` | 服务器监听地址 | `0.0.0.0` |
-| `PORT` | 服务器监听端口 | `8765` |
+| `PORT` | 服务器监听端口 | `8000` |
 | `DEBUG` | 调试模式 | `true` |
 | `LOG_LEVEL` | 日志级别（DEBUG / INFO / WARNING / ERROR / CRITICAL） | `INFO` |
 | `LOGGING_FORMAT` | 日志格式（`json` 生产环境 / `console` 开发环境） | `console` |
@@ -210,7 +210,7 @@ cp .env.example .env
 uv run x-HanChuan --reload
 
 # 生产环境
-uv run x-HanChuan --host 0.0.0.0 --port 8765
+uv run x-HanChuan --host 0.0.0.0 --port 8000
 
 # 查看帮助
 uv run x-HanChuan --help
@@ -223,10 +223,10 @@ uv run x-HanChuan --help
 uv run uvicorn src.main:app --reload
 
 # 生产环境
-uv run uvicorn src.main:app --host 0.0.0.0 --port 8765
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
 
-#### Docker 容器部署
+#### 方式三：Docker 容器部署
 
 ```bash
 # 构建并启动
@@ -238,6 +238,11 @@ docker compose logs -f
 # 停止
 docker compose down
 ```
+
+服务启动后访问：
+- API 文档（Swagger）：http://localhost:8000/docs
+- API 文档（ReDoc）：http://localhost:8000/redoc
+- 健康检查：http://localhost:8000/api/v1/health
 
 ### 5. 常用工程命令
 

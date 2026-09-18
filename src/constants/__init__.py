@@ -6,7 +6,7 @@
 
 子模块：
     constants.py  — 全局常量（应用信息、环境标识、响应消息等）
-    enums.py      — 业务枚举（CommonStatus、UserStatus、AlertChannel、HttpStatus、HttpMediaType）
+    enums.py      — 业务枚举（CommonStatus）
     base.py       — 可描述枚举基类（BaseEnum）
 """
 
@@ -30,7 +30,7 @@ from src.constants.constants import (
     MSG_VALIDATION_ERROR,
     REQUEST_ID_HEADER,
 )
-from src.constants.enums import AlertChannel, CommonStatus, HttpMediaType, HttpStatus, UserStatus
+from src.constants.enums import CommonStatus
 
 __all__ = [
     "APP_ID",
@@ -55,7 +55,6 @@ __all__ = [
     "USERNAME_MAX_LENGTH",
     "UserStatus",
     "CommonStatus",
-    "AlertChannel",
     "HttpMediaType",
     "HttpStatus",
 ]

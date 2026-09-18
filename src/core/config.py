@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # 服务器配置
     host: str = Field(default="0.0.0.0", description="服务器监听地址")
-    port: int = Field(default=8765, description="服务器监听端口")
+    port: int = Field(default=8000, description="服务器监听端口")
     debug: bool = Field(default=True, description="调试模式")
 
     # 日志配置（扁平字段，兼容 .env 中的 LOG_LEVEL）

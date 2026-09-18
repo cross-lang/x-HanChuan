@@ -6,7 +6,7 @@
 
 ```bash
 uv sync --dev
-uv run x-HanChuan serve                    # 0.0.0.0:8765
+uv run x-HanChuan serve                    # 0.0.0.0:8000
 uv run x-HanChuan serve --port 9000 --reload
 uv run x-HanChuan config                   # 查看当前配置
 ```

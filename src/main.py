@@ -66,7 +66,7 @@ def main() -> None:
         version=f"x-HanChuan {APP_VERSION}",
     )
     parser.add_argument("--host", default="0.0.0.0", help="服务器监听地址（默认 0.0.0.0）")
-    parser.add_argument("--port", default=8765, type=int, help="服务器监听端口（默认 8765）")
+    parser.add_argument("--port", default=8000, type=int, help="服务器监听端口（默认 8000）")
     parser.add_argument("--reload", action="store_true", help="启用热重载（开发模式）")
     args = parser.parse_args()
 

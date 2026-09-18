@@ -113,5 +113,23 @@ class MessageService:
             "rooms": len(self.manager.rooms),
         }
 
+    def get_connections(self) -> dict[str, int | list[str]]:
+        """返回当前在线连接信息。"""
+        return {
+            "count": self.manager.get_active_count(),
+            "client_ids": list(self.manager.active_connections.keys()),
+        }
+
+    def get_rooms(self) -> dict[str, int | dict[str, list[str]]]:
+        """返回所有活跃房间及成员信息。"""
+        rooms = {
+            room_id: list(members)
+            for room_id, members in self.manager.rooms.items()
+        }
+        return {
+            "count": len(rooms),
+            "rooms": rooms,
+        }
+
 
 message_service = MessageService()
