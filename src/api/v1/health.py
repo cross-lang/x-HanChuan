@@ -13,10 +13,10 @@ from src.constants.constants import APP_NAME, APP_VERSION
 from src.core.config import settings
 from src.schemas.health import HealthResponse, VersionResponse
 
-router = APIRouter(tags=["健康检查"])
+router = APIRouter(tags=["api/v1/health"])
 
 
-@router.get("/health"，tags=["健康检查"])
+@router.get("/health", summary="健康检查")
 async def health_check() -> HealthResponse:
     """健康检查。"""
     environment = "development" if settings.debug else "production"
@@ -28,7 +28,7 @@ async def health_check() -> HealthResponse:
     )
 
 
-@router.get("/version", tags=["版本信息"])
+@router.get("/version", summary="版本信息")
 async def version() -> VersionResponse:
     """版本信息。"""
     return VersionResponse.current()

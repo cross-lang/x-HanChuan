@@ -21,16 +21,12 @@ class HealthResponse(BaseModel):
         version: 应用版本号
         app: 应用名称
         environment: 运行环境
-        database: 数据库连接状态
-        cache: 缓存连接状态
     """
 
     status: str = Field(default="ok", description="服务状态")
     version: str = Field(description="应用版本号")
     app: str = Field(description="应用名称")
     environment: str = Field(description="运行环境")
-    database: str | None = Field(default=None, description="数据库连接状态")
-    cache: str | None = Field(default=None, description="缓存连接状态")
 
 
 class VersionResponse(BaseModel):

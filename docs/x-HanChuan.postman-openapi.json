@@ -1,0 +1,220 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "汉川（x-HanChuan）",
+    "description": "一个基于 WebSocket 协议的实时通信服务",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "api/v1/health"
+        ],
+        "summary": "健康检查",
+        "description": "健康检查。",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "tags": [
+          "api/v1/health"
+        ],
+        "summary": "版本信息",
+        "description": "版本信息。",
+        "operationId": "version_api_v1_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "tags": [
+          "api/v1/message"
+        ],
+        "summary": "WebSocket 服务状态概览",
+        "description": "查询 WebSocket 服务状态概览。\n\n包含在线连接数和活跃房间数。",
+        "operationId": "status_api_v1_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "type": "object",
+                  "title": "Response Status Api V1 Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections": {
+      "get": {
+        "tags": [
+          "api/v1/message"
+        ],
+        "summary": "在线连接的客户端 ID 列表",
+        "description": "查询 WebSocket 当前所有在线连接的客户端 ID 列表。",
+        "operationId": "connections_api_v1_connections_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    ]
+                  },
+                  "type": "object",
+                  "title": "Response Connections Api V1 Connections Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms": {
+      "get": {
+        "tags": [
+          "api/v1/message"
+        ],
+        "summary": "活跃房间及其成员列表",
+        "description": "查询 WebSocket 所有活跃房间及其成员列表。",
+        "operationId": "rooms_api_v1_rooms_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "additionalProperties": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "type": "object",
+                  "title": "Response Rooms Api V1 Rooms Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "服务状态",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "应用版本号"
+          },
+          "app": {
+            "type": "string",
+            "title": "App",
+            "description": "应用名称"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "description": "运行环境"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "app",
+          "environment"
+        ],
+        "title": "HealthResponse",
+        "description": "健康检查响应模型。\n\nAttributes:\n    status: 服务状态（\"ok\" 表示正常，\"error\" 表示异常）\n    version: 应用版本号\n    app: 应用名称\n    environment: 运行环境"
+      },
+      "VersionResponse": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "应用版本号"
+          },
+          "api_version": {
+            "type": "string",
+            "title": "Api Version",
+            "description": "API 版本号",
+            "default": "v1"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "VersionResponse",
+        "description": "版本信息响应模型。\n\nAttributes:\n    version: 应用版本号\n    api_version: API 版本号（如 \"v1\"），与路由前缀一致"
+      }
+    }
+  }
+}
