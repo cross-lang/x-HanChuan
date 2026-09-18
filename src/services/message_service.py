@@ -1,8 +1,9 @@
 """消息业务服务。"""
+import json
 import uuid
 from typing import Optional
 
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 
 from src.constants.enums import MessageType
 from src.connection.manager import ConnectionManager
@@ -13,6 +14,7 @@ from src.schemas.message import (
     ChatMessage,
     ConnectedMessage,
     EchoMessage,
+    ErrorMessage,
     PongMessage,
 )
 
@@ -23,15 +25,30 @@ class MessageService:
     def __init__(self) -> None:
         self.manager = ConnectionManager()
 
-    async def connect(self, websocket: WebSocket) -> ConnectedMessage:
-        """建立客户端连接并返回连接确认消息。"""
+    async def handle_connection(self, websocket: WebSocket) -> None:
+        """管理 WebSocket 连接的完整生命周期。
+
+        包括建立连接、发送确认、接收消息循环、异常处理和断开清理。
+
+        Args:
+            websocket: WebSocket 连接对象
+        """
         client_id = str(uuid.uuid4())[:8]
         await self.manager.connect(websocket, client_id)
-        return ConnectedMessage(message="连接已建立", client_id=client_id)
+        await websocket.send_json(
+            ConnectedMessage(message="连接已建立", client_id=client_id).model_dump()
+        )
 
-    async def disconnect(self, client_id: str) -> None:
-        """断开客户端连接。"""
-        await self.manager.disconnect(client_id)
+        try:
+            while True:
+                raw = await websocket.receive_text()
+                await self.handle_raw_message(websocket, client_id, raw)
+        except WebSocketDisconnect:
+            logger.info(f"客户端 {client_id} 主动断开")
+        except Exception as error:
+            logger.error(f"客户端 {client_id} 异常: {error}")
+        finally:
+            await self.manager.disconnect(client_id)
 
     async def dispatch(
         self, data: dict, client_id: str
@@ -112,6 +129,36 @@ class MessageService:
             "active_connections": self.manager.get_active_count(),
             "rooms": len(self.manager.rooms),
         }
+
+    async def handle_raw_message(
+        self, websocket: WebSocket, client_id: str, raw: str
+    ) -> None:
+        """解析原始文本并分发业务，错误时回写 ErrorMessage。
+
+        Args:
+            websocket: WebSocket 连接对象
+            client_id: 发送方客户端 ID
+            raw: 原始文本消息
+        """
+        try:
+            data = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            await self.send_error(websocket, "无效的 JSON 格式")
+            return
+
+        try:
+            result = await self.dispatch(data, client_id)
+        except ValueError as error:
+            await self.send_error(websocket, str(error))
+            return
+
+        if result is not None:
+            await websocket.send_json(result)
+
+    @staticmethod
+    async def send_error(websocket: WebSocket, msg: str) -> None:
+        """发送结构化错误消息。"""
+        await websocket.send_json(ErrorMessage(message=msg).model_dump())
 
     def get_connections(self) -> dict[str, int | list[str]]:
         """返回当前在线连接信息。"""
