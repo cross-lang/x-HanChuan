@@ -2,22 +2,33 @@
 健康检查接口
 
 本模块提供应用健康检查和版本信息查询接口，
-用于服务监控、负载均衡健康探测和部署验证。
 
 Endpoints:
-    GET /health: 健康检查（返回数据库、缓存连通状态）
+    GET /health: 健康检查
     GET /version: 版本信息
 """
 from fastapi import APIRouter
 
-from src.constants.constants import APP_NAME, APP_VERSION, APP_DESCRIPTION
-from src.services import message_service
+from src.constants.constants import APP_NAME, APP_VERSION
+from src.core.config import settings
+from src.schemas.health import HealthResponse, VersionResponse
 
 router = APIRouter(tags=["健康检查"])
 
 
+@router.get("/health"，tags=["健康检查"])
+async def health_check() -> HealthResponse:
+    """健康检查。"""
+    environment = "development" if settings.debug else "production"
+    return HealthResponse(
+        status="ok",
+        version=APP_VERSION,
+        app=APP_NAME,
+        environment=environment,
+    )
 
-@router.get("/health")
-async def health_check() -> dict[str, int | str]:
-    """返回服务健康状态。"""
-    return message_service.health()
+
+@router.get("/version", tags=["版本信息"])
+async def version() -> VersionResponse:
+    """版本信息。"""
+    return VersionResponse.current()

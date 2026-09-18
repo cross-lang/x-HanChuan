@@ -122,7 +122,7 @@ class MessageService:
         """心跳：返回 Pong 响应。"""
         return PongMessage()
 
-    def health(self) -> dict[str, int | str]:
+    def status(self) -> dict[str, int | str]:
         """返回服务健康状态。"""
         return {
             "status": "healthy",
