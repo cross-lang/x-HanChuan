@@ -13,7 +13,7 @@ from src.constants.constants import APP_NAME, APP_VERSION
 from src.core.config import settings
 from src.schemas.health import HealthResponse, VersionResponse
 
-router = APIRouter(tags=["api/v1/health"])
+router = APIRouter(tags=["健康检查"])
 
 
 @router.get("/health", summary="健康检查")

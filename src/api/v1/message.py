@@ -1,4 +1,4 @@
-"""WebSocket 路由。
+"""WebSocket 消息路由。
 
 包含 WebSocket 通信端点和连接管理 HTTP 接口。
 
@@ -12,7 +12,7 @@ from fastapi import APIRouter, WebSocket
 
 from src.services import message_service
 
-router = APIRouter(tags=["api/v1/message"])
+router = APIRouter(tags=["套接字消息"])
 
 
 # ---- WebSocket 通信端点 ------------------------------------------------

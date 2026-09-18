@@ -10,7 +10,7 @@ router = APIRouter(prefix=API_PREFIX)
 # 注册健康检查路由
 router.include_router(health_router)
 
-# 注册消息路由（WebSocket 通信端点 + 管理接口）
+# 注册套接字消息路由（WebSocket 消息通信和管理）
 router.include_router(message_router)
 
 __all__ = ["router"]
