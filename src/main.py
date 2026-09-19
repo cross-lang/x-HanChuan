@@ -24,6 +24,14 @@ async def lifespan(app: FastAPI):
     """
     setup_logging()
 
+    # ---- 依赖注入：创建核心组件并挂载到 app.state ----
+    from .connection.manager import ConnectionManager
+    from .services.message_service import MessageService
+
+    manager = ConnectionManager()
+    app.state.connection_manager = manager
+    app.state.message_service = MessageService(manager)
+
     logger.info(f"{APP_NAME} v{APP_VERSION} starting up...")
     logger.info(f"Debug mode: {settings.server.debug}")
     logger.info(f"Listening on: {settings.server.host}:{settings.server.port}")
