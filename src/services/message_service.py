@@ -146,6 +146,9 @@ class MessageService:
             await self.send_error(websocket, "无效的 JSON 格式")
             return
 
+        msg_type = data.get("type", "unknown")
+        logger.info(f"[消息接收] 客户端ID {client_id} | 类型={msg_type} | 原始数据={raw}")
+
         try:
             result = await self.dispatch(data, client_id)
         except ValueError as error:
