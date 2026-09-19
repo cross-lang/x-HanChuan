@@ -155,12 +155,7 @@ flowchart TD
 ### 1. Clone the Project
 
 ```bash
-# GitHub
-git clone https://github.com/yeyushilai/x-HanChuan.git
-cd x-HanChuan
-
-# Gitee
-git clone https://gitee.com/yeyushilai/x-HanChuan.git
+git clone https://github.com/cross-lang/x-HanChuan.git
 cd x-HanChuan
 ```
 

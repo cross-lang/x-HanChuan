@@ -166,12 +166,7 @@ flowchart TD
 ### 1. 克隆项目
 
 ```bash
-# Gitee
-git clone https://gitee.com/yeyushilai/x-HanChuan.git
-cd x-HanChuan
-
-# GitHub
-git clone https://github.com/yeyushilai/x-HanChuan.git
+git clone https://github.com/cross-lang/x-HanChuan.git
 cd x-HanChuan
 ```
 
